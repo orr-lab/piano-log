@@ -120,7 +120,8 @@ export async function generateAiFeedback(
       const uploaded = await uploadBlobToGemini(ai, blob, mimeType);
       uploadedFileName = uploaded.name;
       mediaPart = { fileData: { fileUri: uploaded.fileUri, mimeType: uploaded.mimeType } };
-    } catch {
+    } catch (err) {
+      console.error("[ai-feedback] yt-dlp download failed, falling back to direct URL:", err);
       // Fall back to handing Gemini the canonical URL directly — still works for videos
       // Google has already indexed, and keeps the feature working if yt-dlp can't reach
       // this video for some reason (blocked, unsupported format, binary unavailable, etc.).
