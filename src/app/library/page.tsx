@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, ListMusic } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -15,7 +15,18 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { RecordingCard } from "@/components/recording-card";
 import { EmptyState } from "@/components/empty-state";
-import type { Recording } from "@/lib/types";
+import { pieceKey, type Recording } from "@/lib/types";
+
+function groupByPieceForDisplay(recordings: Recording[]) {
+  const groups = new Map<string, { representative: Recording; count: number }>();
+  for (const r of recordings) {
+    const key = pieceKey(r);
+    const existing = groups.get(key);
+    if (existing) existing.count += 1;
+    else groups.set(key, { representative: r, count: 1 });
+  }
+  return Array.from(groups.values());
+}
 
 const SORT_OPTIONS = [
   { value: "date:desc", label: "Newest first" },
@@ -77,6 +88,8 @@ export default function LibraryPage() {
       cancelled = true;
     };
   }, [debouncedSearch, tag, composer, difficulty, favorite, sort, order]);
+
+  const groups = useMemo(() => (recordings ? groupByPieceForDisplay(recordings) : []), [recordings]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
@@ -175,8 +188,17 @@ export default function LibraryPage() {
         />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
-          {recordings.map((r) => (
-            <RecordingCard key={r.id} recording={r} />
+          {groups.map(({ representative, count }) => (
+            <RecordingCard
+              key={representative.id}
+              recording={representative}
+              count={count}
+              href={
+                count > 1
+                  ? `/piece?title=${encodeURIComponent(representative.title)}&composer=${encodeURIComponent(representative.composer)}`
+                  : undefined
+              }
+            />
           ))}
         </div>
       )}
