@@ -40,7 +40,20 @@ export async function downloadYoutubeAudio(
   const dir = await mkdtemp(path.join(tmpdir(), "ytdlp-"));
 
   try {
-    const args = ["-f", "bestaudio", "--no-playlist", "--no-part"];
+    const args = [
+      "-f",
+      "bestaudio",
+      "--no-playlist",
+      "--no-part",
+      // YouTube's "n" anti-throttling challenge requires actually executing obfuscated
+      // JS. yt-dlp can use any JS runtime for this — point it at the same Node binary
+      // this server is already running on, and allow it to fetch the (small, official)
+      // challenge-solver script it needs from yt-dlp's own GitHub repo.
+      "--js-runtimes",
+      `node:${process.execPath}`,
+      "--remote-components",
+      "ejs:github",
+    ];
 
     // YouTube blocks requests from known cloud/datacenter IPs (like Vercel's) with a
     // "confirm you're not a bot" challenge. Passing a real logged-in session's cookies
