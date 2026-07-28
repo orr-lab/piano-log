@@ -1,7 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Search, ListMusic } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -26,24 +25,21 @@ const SORT_OPTIONS = [
   { value: "piece:asc", label: "Piece name (A–Z)" },
 ];
 
-function LibraryContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
-
+export default function LibraryPage() {
   const [recordings, setRecordings] = useState<Recording[] | null>(null);
   const [facets, setFacets] = useState<{ composers: string[]; tags: string[] }>({
     composers: [],
     tags: [],
   });
-  const [search, setSearch] = useState(searchParams.get("q") ?? "");
 
-  const tag = searchParams.get("tag") ?? "all";
-  const composer = searchParams.get("composer") ?? "all";
-  const difficulty = searchParams.get("difficulty") ?? "all";
-  const favorite = searchParams.get("favorite") === "true";
-  const sort = searchParams.get("sort") ?? "date";
-  const order = searchParams.get("order") ?? "desc";
-  const sortValue = `${sort}:${order}`;
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [tag, setTag] = useState("all");
+  const [composer, setComposer] = useState("all");
+  const [difficulty, setDifficulty] = useState("all");
+  const [favorite, setFavorite] = useState(false);
+  const [sortValue, setSortValue] = useState("date:desc");
+  const [sort, order] = sortValue.split(":");
 
   useEffect(() => {
     fetch("/api/facets")
@@ -53,16 +49,13 @@ function LibraryContent() {
   }, []);
 
   useEffect(() => {
-    const id = setTimeout(() => {
-      updateParam("q", search || null);
-    }, 300);
+    const id = setTimeout(() => setDebouncedSearch(search), 300);
     return () => clearTimeout(id);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   useEffect(() => {
     const params = new URLSearchParams();
-    if (searchParams.get("q")) params.set("q", searchParams.get("q")!);
+    if (debouncedSearch) params.set("q", debouncedSearch);
     if (tag !== "all") params.set("tag", tag);
     if (composer !== "all") params.set("composer", composer);
     if (difficulty !== "all") params.set("difficulty", difficulty);
@@ -70,20 +63,20 @@ function LibraryContent() {
     params.set("sort", sort);
     params.set("order", order);
 
+    let cancelled = false;
     setRecordings(null);
     fetch(`/api/recordings?${params.toString()}`)
       .then((r) => r.json())
-      .then(setRecordings)
-      .catch(() => setRecordings([]));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams.get("q"), tag, composer, difficulty, favorite, sort, order]);
-
-  function updateParam(key: string, value: string | null) {
-    const params = new URLSearchParams(searchParams.toString());
-    if (value === null || value === "all" || value === "") params.delete(key);
-    else params.set(key, value);
-    router.replace(`/library?${params.toString()}`);
-  }
+      .then((data) => {
+        if (!cancelled) setRecordings(data);
+      })
+      .catch(() => {
+        if (!cancelled) setRecordings([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [debouncedSearch, tag, composer, difficulty, favorite, sort, order]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
@@ -103,7 +96,7 @@ function LibraryContent() {
           />
         </div>
 
-        <Select value={composer} onValueChange={(v) => updateParam("composer", v)}>
+        <Select value={composer} onValueChange={(v) => v && setComposer(v)}>
           <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Composer" />
           </SelectTrigger>
@@ -117,7 +110,7 @@ function LibraryContent() {
           </SelectContent>
         </Select>
 
-        <Select value={tag} onValueChange={(v) => updateParam("tag", v)}>
+        <Select value={tag} onValueChange={(v) => v && setTag(v)}>
           <SelectTrigger className="w-full sm:w-40">
             <SelectValue placeholder="Tag" />
           </SelectTrigger>
@@ -131,7 +124,7 @@ function LibraryContent() {
           </SelectContent>
         </Select>
 
-        <Select value={difficulty} onValueChange={(v) => updateParam("difficulty", v)}>
+        <Select value={difficulty} onValueChange={(v) => v && setDifficulty(v)}>
           <SelectTrigger className="w-full sm:w-36">
             <SelectValue placeholder="Difficulty" />
           </SelectTrigger>
@@ -145,17 +138,7 @@ function LibraryContent() {
           </SelectContent>
         </Select>
 
-        <Select
-          value={sortValue}
-          onValueChange={(v) => {
-            if (!v) return;
-            const [s, o] = v.split(":");
-            const params = new URLSearchParams(searchParams.toString());
-            params.set("sort", s);
-            params.set("order", o);
-            router.replace(`/library?${params.toString()}`);
-          }}
-        >
+        <Select value={sortValue} onValueChange={(v) => v && setSortValue(v)}>
           <SelectTrigger className="w-full sm:w-44">
             <SelectValue placeholder="Sort" />
           </SelectTrigger>
@@ -169,7 +152,7 @@ function LibraryContent() {
         </Select>
 
         <div className="flex items-center gap-2 sm:ml-auto">
-          <Switch id="favorite" checked={favorite} onCheckedChange={(v) => updateParam("favorite", v ? "true" : null)} />
+          <Switch id="favorite" checked={favorite} onCheckedChange={setFavorite} />
           <Label htmlFor="favorite" className="text-sm font-normal">
             Favorites only
           </Label>
@@ -198,13 +181,5 @@ function LibraryContent() {
         </div>
       )}
     </div>
-  );
-}
-
-export default function LibraryPage() {
-  return (
-    <Suspense>
-      <LibraryContent />
-    </Suspense>
   );
 }
