@@ -26,6 +26,9 @@ model Recording {
   tempoBpm    Int?
   notes       String?
   isFavorite  Boolean     @default(false)
+  aiRating    Int?
+  aiFeedback  String?
+  aiFeedbackAt DateTime?
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 

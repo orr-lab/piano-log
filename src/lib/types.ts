@@ -14,6 +14,9 @@ export interface Recording {
   tempoBpm: number | null;
   notes: string | null;
   isFavorite: boolean;
+  aiRating: number | null;
+  aiFeedback: string | null;
+  aiFeedbackAt: string | null;
   createdAt: string;
   updatedAt: string;
 }

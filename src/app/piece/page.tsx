@@ -29,6 +29,7 @@ export default async function PiecePage({
   const recordings: Recording[] = rows.map((r) => ({
     ...r,
     recordedAt: r.recordedAt.toISOString(),
+    aiFeedbackAt: r.aiFeedbackAt?.toISOString() ?? null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));

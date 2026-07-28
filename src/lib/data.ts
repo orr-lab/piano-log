@@ -6,6 +6,7 @@ export async function getAllRecordings(): Promise<Recording[]> {
   return rows.map((r) => ({
     ...r,
     recordedAt: r.recordedAt.toISOString(),
+    aiFeedbackAt: r.aiFeedbackAt?.toISOString() ?? null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   }));

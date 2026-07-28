@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import type { Recording } from "@/lib/types";
 import { VideoPlayer } from "@/components/video-player";
 import { RecordingActions } from "@/components/recording-actions";
+import { AiFeedbackSection } from "@/components/ai-feedback-section";
 import { Badge } from "@/components/ui/badge";
 import { getSessionRole } from "@/lib/session";
 
@@ -25,6 +26,7 @@ export default async function RecordingDetailPage({
   const recording: Recording = {
     ...row,
     recordedAt: row.recordedAt.toISOString(),
+    aiFeedbackAt: row.aiFeedbackAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
@@ -68,6 +70,14 @@ export default async function RecordingDetailPage({
           <p className="whitespace-pre-wrap text-sm leading-relaxed">{recording.notes}</p>
         </div>
       )}
+
+      <AiFeedbackSection
+        recordingId={recording.id}
+        role={role}
+        aiRating={recording.aiRating}
+        aiFeedback={recording.aiFeedback}
+        aiFeedbackAt={recording.aiFeedbackAt}
+      />
 
       <Link
         href={pieceHref}

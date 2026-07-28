@@ -17,6 +17,7 @@ export default async function EditRecordingPage({
   const recording: Recording = {
     ...row,
     recordedAt: row.recordedAt.toISOString(),
+    aiFeedbackAt: row.aiFeedbackAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   };
