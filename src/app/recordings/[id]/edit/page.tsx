@@ -1,0 +1,35 @@
+import { notFound } from "next/navigation";
+import { prisma } from "@/lib/prisma";
+import type { Recording } from "@/lib/types";
+import { RecordingForm } from "@/components/recording-form";
+
+export const dynamic = "force-dynamic";
+
+export default async function EditRecordingPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
+  const { id } = await params;
+  const row = await prisma.recording.findUnique({ where: { id } });
+  if (!row) notFound();
+
+  const recording: Recording = {
+    ...row,
+    recordedAt: row.recordedAt.toISOString(),
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  };
+
+  return (
+    <div className="mx-auto max-w-2xl px-4 py-10">
+      <div className="mb-8 space-y-1">
+        <h1 className="text-2xl font-semibold tracking-tight">Edit take</h1>
+        <p className="text-muted-foreground">
+          {recording.title} · {recording.composer}
+        </p>
+      </div>
+      <RecordingForm mode="edit" initialData={recording} />
+    </div>
+  );
+}
