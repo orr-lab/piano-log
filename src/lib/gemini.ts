@@ -1,20 +1,36 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { downloadYoutubeAudio } from "@/lib/ytdlp";
 import type { Recording } from "@/lib/types";
 
 const MODEL = "gemini-3.6-flash";
 
-const PROMPT = `You are an encouraging piano teacher reviewing a student's practice recording.
-Listen to this performance and assess it, focusing on musical qualities: tempo and rhythmic
-steadiness, dynamic range and control, tone/touch, and any obvious mistakes or hesitations.
-Ignore visual details like camera framing, lighting, or appearance — you're evaluating the
-playing, not the video.
+const PROMPT = `You are an experienced, demanding piano teacher giving a private lesson note on a
+student's practice recording. This feedback is for the student's own improvement, not a public
+review — prioritize honesty and specificity over encouragement. Do not soften real problems or
+pad the response with generic praise ("great job!", "nice work!") that isn't backed by something
+concrete you actually heard. If the take is rough, say so plainly and explain why.
+
+Listen to this performance and assess it, focusing only on musical qualities. Ignore visual
+details like camera framing, lighting, or appearance — you're evaluating the playing, not the
+video. Cover whichever of these are relevant to what you hear:
+- Tempo and rhythmic steadiness — rushing, dragging, unstable stretches, tempo that drifts
+- Dynamics and expressive control — flat/one-volume playing vs. real contrast and shaping
+- Tone and touch — harsh or banged notes, uneven voicing, pedaling issues (blurring, missed
+  pedal changes)
+- Technical execution — wrong notes, fingering slips, hesitations, dropped or rushed passages
+- Phrasing and musicality — does it shape phrases and breathe, or does it sound mechanical?
+- If you can localize an issue in time (e.g. "around the middle," "in the final phrase," "at the
+  faster passage"), do so — vague feedback is much less useful than specific feedback.
 
 Respond with:
 - rating: a whole number from 1 to 5 (5 = polished and performance-ready, 1 = very rough take)
-  reflecting the overall execution quality of this specific take.
-- feedback: 2-4 sentences of specific, constructive feedback — what went well, and one or two
-  concrete things to work on next. Be warm and encouraging, but honest and specific. Avoid
-  generic praise like "great job!" with nothing concrete behind it.`;
+  reflecting the overall execution quality of this specific take. Use the full range — don't
+  default to the middle out of politeness.
+- feedback: as long as it needs to be to be genuinely useful — do not artificially shorten it.
+  Structure it in two clearly separated parts: first what's actually working (be specific about
+  what, not just that something was good), then what to work on next, with the most impactful
+  issue first. Write it directly to the student, in a direct and honest tone — a demanding
+  teacher's note, not a cheerleader's.`;
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
@@ -42,6 +58,42 @@ function extractFallbackRating(text: string): number {
   return 3;
 }
 
+interface UploadedMedia {
+  fileUri: string;
+  mimeType?: string;
+  name: string;
+}
+
+async function uploadBlobToGemini(
+  ai: GoogleGenAI,
+  blob: Blob,
+  mimeType: string
+): Promise<UploadedMedia> {
+  const uploaded = await ai.files.upload({ file: blob, config: { mimeType } });
+  if (!uploaded.name) {
+    throw new Error("Gemini did not return a file reference for the upload.");
+  }
+
+  let file = await ai.files.get({ name: uploaded.name });
+  let attempts = 0;
+  while (file.state === "PROCESSING" && attempts < 20) {
+    await sleep(3000);
+    file = await ai.files.get({ name: uploaded.name });
+    attempts += 1;
+  }
+  if (file.state === "FAILED") {
+    throw new Error("Gemini failed to process the uploaded file.");
+  }
+  if (file.state === "PROCESSING") {
+    throw new Error("Gemini is still processing the file — try again in a moment.");
+  }
+  if (!file.uri) {
+    throw new Error("Gemini did not return a URI for the processed file.");
+  }
+
+  return { fileUri: file.uri, mimeType: file.mimeType, name: uploaded.name };
+}
+
 export async function generateAiFeedback(
   recording: Pick<Recording, "videoSource" | "videoUrl" | "youtubeId">
 ): Promise<AiFeedbackResult> {
@@ -51,16 +103,30 @@ export async function generateAiFeedback(
 
   const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-  let videoPart: { fileData: { fileUri: string; mimeType?: string } };
+  let mediaPart: { fileData: { fileUri: string; mimeType?: string } };
   let uploadedFileName: string | undefined;
 
   if (recording.videoSource === "YOUTUBE") {
     if (!recording.youtubeId) {
       throw new Error("This recording is missing its YouTube video ID.");
     }
-    // Gemini only recognizes canonical youtube.com/watch URLs, not youtu.be short links.
-    const canonicalUrl = `https://www.youtube.com/watch?v=${recording.youtubeId}`;
-    videoPart = { fileData: { fileUri: canonicalUrl, mimeType: "video/mp4" } };
+
+    try {
+      // Download the audio ourselves and upload it to Gemini directly, rather than relying
+      // on Gemini to fetch the YouTube video — Gemini only recognizes videos Google's own
+      // systems have already indexed, which can lag behind a recent/low-view upload by a day
+      // or more.
+      const { blob, mimeType } = await downloadYoutubeAudio(recording.youtubeId);
+      const uploaded = await uploadBlobToGemini(ai, blob, mimeType);
+      uploadedFileName = uploaded.name;
+      mediaPart = { fileData: { fileUri: uploaded.fileUri, mimeType: uploaded.mimeType } };
+    } catch {
+      // Fall back to handing Gemini the canonical URL directly — still works for videos
+      // Google has already indexed, and keeps the feature working if yt-dlp can't reach
+      // this video for some reason (blocked, unsupported format, binary unavailable, etc.).
+      const canonicalUrl = `https://www.youtube.com/watch?v=${recording.youtubeId}`;
+      mediaPart = { fileData: { fileUri: canonicalUrl, mimeType: "video/mp4" } };
+    }
   } else {
     const res = await fetch(recording.videoUrl);
     if (!res.ok) {
@@ -69,30 +135,9 @@ export async function generateAiFeedback(
     const mimeType = res.headers.get("content-type") ?? "video/mp4";
     const blob = await res.blob();
 
-    const uploaded = await ai.files.upload({ file: blob, config: { mimeType } });
-    if (!uploaded.name) {
-      throw new Error("Gemini did not return a file reference for the upload.");
-    }
+    const uploaded = await uploadBlobToGemini(ai, blob, mimeType);
     uploadedFileName = uploaded.name;
-
-    let file = await ai.files.get({ name: uploaded.name });
-    let attempts = 0;
-    while (file.state === "PROCESSING" && attempts < 20) {
-      await sleep(3000);
-      file = await ai.files.get({ name: uploaded.name });
-      attempts += 1;
-    }
-    if (file.state === "FAILED") {
-      throw new Error("Gemini failed to process the uploaded video.");
-    }
-    if (file.state === "PROCESSING") {
-      throw new Error("Gemini is still processing the video — try again in a moment.");
-    }
-    if (!file.uri) {
-      throw new Error("Gemini did not return a URI for the processed file.");
-    }
-
-    videoPart = { fileData: { fileUri: file.uri, mimeType: file.mimeType } };
+    mediaPart = { fileData: { fileUri: uploaded.fileUri, mimeType: uploaded.mimeType } };
   }
 
   try {
@@ -103,7 +148,7 @@ export async function generateAiFeedback(
         contents: [
           {
             role: "user",
-            parts: [videoPart, { text: PROMPT }],
+            parts: [mediaPart, { text: PROMPT }],
           },
         ],
         config: {
