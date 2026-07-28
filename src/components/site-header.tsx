@@ -4,8 +4,10 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Piano, LogOut, Plus } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { cn } from "@/lib/utils";
+import type { Role } from "@/lib/auth";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -13,9 +15,10 @@ const NAV_LINKS = [
   { href: "/stats", label: "Stats" },
 ];
 
-export function SiteHeader() {
+export function SiteHeader({ role }: { role: Role | null }) {
   const pathname = usePathname();
   const router = useRouter();
+  const isOwner = role === "owner";
 
   if (pathname === "/login") return null;
 
@@ -31,6 +34,11 @@ export function SiteHeader() {
         <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
           <Piano className="size-5 text-primary" />
           <span>Piano Log</span>
+          {role === "visitor" && (
+            <Badge variant="secondary" className="font-normal">
+              Visitor
+            </Badge>
+          )}
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
@@ -49,20 +57,24 @@ export function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-1.5">
-          <Link
-            href="/new"
-            className={buttonVariants({ size: "sm", className: "hidden sm:inline-flex" })}
-          >
-            <Plus className="size-4" />
-            New take
-          </Link>
-          <Link
-            href="/new"
-            aria-label="New take"
-            className={buttonVariants({ size: "icon", variant: "secondary", className: "sm:hidden" })}
-          >
-            <Plus className="size-4" />
-          </Link>
+          {isOwner && (
+            <>
+              <Link
+                href="/new"
+                className={buttonVariants({ size: "sm", className: "hidden sm:inline-flex" })}
+              >
+                <Plus className="size-4" />
+                New take
+              </Link>
+              <Link
+                href="/new"
+                aria-label="New take"
+                className={buttonVariants({ size: "icon", variant: "secondary", className: "sm:hidden" })}
+              >
+                <Plus className="size-4" />
+              </Link>
+            </>
+          )}
           <ThemeToggle />
           <Button variant="ghost" size="icon" aria-label="Log out" onClick={handleLogout}>
             <LogOut className="size-4" />

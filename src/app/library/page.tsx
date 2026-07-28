@@ -16,6 +16,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { RecordingCard } from "@/components/recording-card";
 import { EmptyState } from "@/components/empty-state";
 import { pieceKey, type Recording } from "@/lib/types";
+import type { Role } from "@/lib/auth";
 
 function groupByPieceForDisplay(recordings: Recording[]) {
   const groups = new Map<string, { representative: Recording; count: number }>();
@@ -51,11 +52,16 @@ export default function LibraryPage() {
   const [favorite, setFavorite] = useState(false);
   const [sortValue, setSortValue] = useState("date:desc");
   const [sort, order] = sortValue.split(":");
+  const [role, setRole] = useState<Role | null>(null);
 
   useEffect(() => {
     fetch("/api/facets")
       .then((r) => r.json())
       .then(setFacets)
+      .catch(() => {});
+    fetch("/api/session")
+      .then((r) => r.json())
+      .then((data) => setRole(data.role))
       .catch(() => {});
   }, []);
 
@@ -182,9 +188,13 @@ export default function LibraryPage() {
         <EmptyState
           icon={ListMusic}
           title="No recordings match these filters"
-          description="Try clearing a filter, or log a new take to grow your library."
-          actionHref="/new"
-          actionLabel="Log a new take"
+          description={
+            role === "owner"
+              ? "Try clearing a filter, or log a new take to grow your library."
+              : "Try clearing a filter to see more."
+          }
+          actionHref={role === "owner" ? "/new" : undefined}
+          actionLabel={role === "owner" ? "Log a new take" : undefined}
         />
       ) : (
         <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">

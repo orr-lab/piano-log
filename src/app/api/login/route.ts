@@ -1,24 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, computeSessionToken } from "@/lib/auth";
+import { SESSION_COOKIE, createSessionCookieValue, roleForPassword } from "@/lib/auth";
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json().catch(() => ({ password: "" }));
-  const sitePassword = process.env.SITE_PASSWORD ?? "";
 
-  if (!sitePassword) {
+  if (!process.env.SITE_PASSWORD) {
     return NextResponse.json(
       { error: "SITE_PASSWORD is not configured on the server." },
       { status: 500 }
     );
   }
 
-  if (typeof password !== "string" || password !== sitePassword) {
+  if (typeof password !== "string") {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
-  const token = await computeSessionToken(password);
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(SESSION_COOKIE, token, {
+  const role = await roleForPassword(password);
+  if (!role) {
+    return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
+  }
+
+  const response = NextResponse.json({ ok: true, role });
+  response.cookies.set(SESSION_COOKIE, await createSessionCookieValue(role), {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Star, Pencil, Trash2, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -17,18 +18,29 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import type { Role } from "@/lib/auth";
 
 export function RecordingActions({
   id,
   isFavorite,
+  role,
 }: {
   id: string;
   isFavorite: boolean;
+  role: Role | null;
 }) {
   const router = useRouter();
   const [favorite, setFavorite] = useState(isFavorite);
   const [togglingFavorite, setTogglingFavorite] = useState(false);
   const [deleting, setDeleting] = useState(false);
+
+  if (role !== "owner") {
+    return isFavorite ? (
+      <Badge variant="secondary" className="gap-1">
+        <Star className="size-3.5 fill-primary text-primary" /> Milestone
+      </Badge>
+    ) : null;
+  }
 
   async function toggleFavorite() {
     setTogglingFavorite(true);

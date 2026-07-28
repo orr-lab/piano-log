@@ -11,11 +11,13 @@ import {
   recordingsPerMonth,
   topByFrequency,
 } from "@/lib/stats";
+import { getSessionRole } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
-  const recordings = await getAllRecordings();
+  const [recordings, role] = await Promise.all([getAllRecordings(), getSessionRole()]);
+  const isOwner = role === "owner";
 
   if (recordings.length === 0) {
     return (
@@ -23,9 +25,13 @@ export default async function StatsPage() {
         <EmptyState
           icon={BarChart3}
           title="No stats yet"
-          description="Log a few takes and your progress charts will show up here."
-          actionHref="/new"
-          actionLabel="Log your first recording"
+          description={
+            isOwner
+              ? "Log a few takes and your progress charts will show up here."
+              : "There's nothing logged yet, so there's nothing to chart."
+          }
+          actionHref={isOwner ? "/new" : undefined}
+          actionLabel={isOwner ? "Log your first recording" : undefined}
         />
       </div>
     );

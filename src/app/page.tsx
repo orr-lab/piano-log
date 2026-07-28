@@ -6,6 +6,7 @@ import { RecordingCard } from "@/components/recording-card";
 import { EmptyState } from "@/components/empty-state";
 import { TrendBarChart } from "@/components/charts/trend-bar-chart";
 import { buttonVariants } from "@/components/ui/button";
+import { getSessionRole } from "@/lib/session";
 import {
   currentStreak,
   formatHoursMinutes,
@@ -17,17 +18,22 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const recordings = await getAllRecordings();
+  const [recordings, role] = await Promise.all([getAllRecordings(), getSessionRole()]);
+  const isOwner = role === "owner";
 
   if (recordings.length === 0) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16">
         <EmptyState
           icon={Piano}
-          title="Record your first take!"
-          description="Upload a video or paste a YouTube link of yourself playing, and start tracking your progress over time."
-          actionHref="/new"
-          actionLabel="Log your first recording"
+          title={isOwner ? "Record your first take!" : "No recordings yet"}
+          description={
+            isOwner
+              ? "Upload a video or paste a YouTube link of yourself playing, and start tracking your progress over time."
+              : "This practice log doesn't have any recordings logged yet."
+          }
+          actionHref={isOwner ? "/new" : undefined}
+          actionLabel={isOwner ? "Log your first recording" : undefined}
         />
       </div>
     );
@@ -44,9 +50,11 @@ export default async function DashboardPage() {
           <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
           <p className="text-muted-foreground">Here&apos;s how your practice has been going.</p>
         </div>
-        <Link href="/new" className={buttonVariants()}>
-          <Plus className="size-4" /> New take
-        </Link>
+        {isOwner && (
+          <Link href="/new" className={buttonVariants()}>
+            <Plus className="size-4" /> New take
+          </Link>
+        )}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

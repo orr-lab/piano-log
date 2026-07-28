@@ -36,7 +36,8 @@ see below) or create one with:
 
 | Variable | Where it comes from |
 |---|---|
-| `SITE_PASSWORD` | Pick your own password. This gates the whole app — set it yourself, don't use the placeholder that may already be in `.env.local` from development. |
+| `SITE_PASSWORD` | Pick your own password. This is the **owner** password — full read/write access. Set it yourself, don't use the placeholder that may already be in `.env.local` from development. |
+| `VISITOR_PASSWORD` | Optional. A second, different password that grants **read-only** access — visitors can browse the dashboard, library, piece pages, and stats, but every create/edit/delete/favorite action is blocked (both hidden in the UI and rejected by the server). Leave unset if you don't want a visitor mode. |
 | `DATABASE_URL` | From your Postgres provider (Neon via Vercel Marketplace, or any Postgres). Pulled automatically by `vercel env pull` once connected. |
 | `BLOB_READ_WRITE_TOKEN` | Created automatically when you run `vercel blob create-store` (see below), or from the Blob store's settings in the Vercel dashboard. |
 
@@ -92,9 +93,10 @@ Visit [http://localhost:3000](http://localhost:3000) and log in with your `SITE_
 vercel deploy --prod
 ```
 
-Make sure `SITE_PASSWORD` is set as a production environment variable in the Vercel
-dashboard (Project Settings → Environment Variables) — `vercel env pull` only pulls
-variables *from* Vercel, it won't push your local `SITE_PASSWORD` there for you.
+Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want visitor access) are set as
+production environment variables in the Vercel dashboard (Project Settings → Environment
+Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't push your
+local values there for you.
 
 ## Staying on the free tier
 

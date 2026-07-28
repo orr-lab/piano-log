@@ -6,6 +6,7 @@ import type { Recording } from "@/lib/types";
 import { VideoPlayer } from "@/components/video-player";
 import { RecordingActions } from "@/components/recording-actions";
 import { Badge } from "@/components/ui/badge";
+import { getSessionRole } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +16,10 @@ export default async function RecordingDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const row = await prisma.recording.findUnique({ where: { id } });
+  const [row, role] = await Promise.all([
+    prisma.recording.findUnique({ where: { id } }),
+    getSessionRole(),
+  ]);
   if (!row) notFound();
 
   const recording: Recording = {
@@ -46,7 +50,7 @@ export default async function RecordingDetailPage({
             {recording.tempoBpm ? ` · ${recording.tempoBpm} BPM` : ""}
           </p>
         </div>
-        <RecordingActions id={recording.id} isFavorite={recording.isFavorite} />
+        <RecordingActions id={recording.id} isFavorite={recording.isFavorite} role={role} />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">

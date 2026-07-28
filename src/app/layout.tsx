@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { SiteHeader } from "@/components/site-header";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { getSessionRole } from "@/lib/session";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -21,11 +22,13 @@ export const metadata: Metadata = {
   description: "A personal practice journal for piano recordings and progress.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const role = await getSessionRole();
+
   return (
     <html
       lang="en"
@@ -35,7 +38,7 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
           <TooltipProvider>
-            <SiteHeader />
+            <SiteHeader role={role} />
             <main className="flex-1">{children}</main>
             <Toaster richColors closeButton />
           </TooltipProvider>
