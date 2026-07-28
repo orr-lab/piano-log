@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { mkdtemp, readdir, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -40,15 +40,20 @@ export async function downloadYoutubeAudio(
   const dir = await mkdtemp(path.join(tmpdir(), "ytdlp-"));
 
   try {
-    await runYtDlp([
-      "-f",
-      "bestaudio",
-      "--no-playlist",
-      "--no-part",
-      "-o",
-      path.join(dir, "audio.%(ext)s"),
-      url,
-    ]);
+    const args = ["-f", "bestaudio", "--no-playlist", "--no-part"];
+
+    // YouTube blocks requests from known cloud/datacenter IPs (like Vercel's) with a
+    // "confirm you're not a bot" challenge. Passing a real logged-in session's cookies
+    // (Netscape cookie-file format) is the only workaround — see README for how to get one.
+    if (process.env.YOUTUBE_COOKIES) {
+      const cookiesPath = path.join(dir, "cookies.txt");
+      await writeFile(cookiesPath, process.env.YOUTUBE_COOKIES, "utf-8");
+      args.push("--cookies", cookiesPath);
+    }
+
+    args.push("-o", path.join(dir, "audio.%(ext)s"), url);
+
+    await runYtDlp(args);
 
     const files = await readdir(dir);
     const audioFile = files[0];

@@ -41,6 +41,7 @@ see below) or create one with:
 | `DATABASE_URL` | From your Postgres provider (Neon via Vercel Marketplace, or any Postgres). Pulled automatically by `vercel env pull` once connected. |
 | `BLOB_READ_WRITE_TOKEN` | Created automatically when you run `vercel blob create-store` (see below), or from the Blob store's settings in the Vercel dashboard. |
 | `GEMINI_API_KEY` | Optional. Powers the "AI feedback" button on a recording — Gemini watches the take and returns a 1-5 rating plus a few sentences of coaching feedback. Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Leave unset to hide/disable the feature (it fails gracefully with a clear error if a request is made without it). |
+| `YOUTUBE_COOKIES` | Optional. Lets the AI-feedback feature fetch a YouTube recording's audio itself instead of asking Gemini to (see [AI feedback](#ai-feedback-gemini) below for why, and how to get this value — it's a real login session, handle it like a credential). Leave unset to skip. |
 
 ## 2. Set up Vercel Postgres (Neon) and Blob storage
 
@@ -124,11 +125,27 @@ things worth knowing:
 - **Uploaded video files** are fetched from Blob storage and pushed to Gemini's Files API
   directly (no external indexing dependency), so this path is reliable as soon as a
   recording exists.
-- **YouTube links** are passed to Gemini as a URL rather than downloaded — but Gemini can
-  only fetch videos Google's systems have already indexed. A YouTube video you uploaded
-  minutes or hours ago (especially unlisted or low-view) may not be available yet; you'll
-  get a clear error message rather than a silent failure, and it typically resolves within
-  a day or two. Established/public videos work immediately.
+- **YouTube links** are handled by downloading the audio ourselves with a bundled
+  `yt-dlp` binary ([src/lib/ytdlp.ts](src/lib/ytdlp.ts)) and uploading that to Gemini,
+  rather than asking Gemini to fetch the video (which only works once Google's own
+  systems have indexed it — a real problem for a video you just uploaded). If yt-dlp
+  can't get the audio for any reason, it falls back to handing Gemini the URL directly.
+
+  **YouTube blocks requests from cloud/datacenter IPs** (including Vercel's) with a
+  "confirm you're not a bot" challenge, so yt-dlp will fail on Vercel *unless* you supply
+  cookies from a real, logged-in YouTube session:
+
+  1. Log into YouTube in a normal browser tab.
+  2. Export cookies for `youtube.com` in Netscape cookie-file format — a browser extension
+     like "Get cookies.txt LOCALLY" does this in one click.
+  3. Set the exported file's contents as the `YOUTUBE_COOKIES` environment variable
+     (as one value, newlines and all).
+
+  **Treat this like any other login credential** — it's a live session for a real Google
+  account, not a purpose-made API key. Consider using a secondary/throwaway Google account
+  for this rather than your main one, and expect to periodically re-export the cookies as
+  the session expires. Leave `YOUTUBE_COOKIES` unset to skip this entirely — the feature
+  still works for uploaded files and for already-indexed YouTube videos either way.
 
 ## Project structure
 
