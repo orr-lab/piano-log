@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ListMusic } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import type { Recording } from "@/lib/types";
@@ -7,7 +7,7 @@ import { VideoPlayer } from "@/components/video-player";
 import { RecordingActions } from "@/components/recording-actions";
 import { AiFeedbackSection } from "@/components/ai-feedback-section";
 import { Badge } from "@/components/ui/badge";
-import { getSessionRole } from "@/lib/session";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +16,14 @@ export default async function RecordingDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { id } = await params;
-  const [row, role] = await Promise.all([
-    prisma.recording.findUnique({ where: { id } }),
-    getSessionRole(),
-  ]);
+  const role = session.role;
+  const row = await prisma.recording.findUnique({
+    where: { id, userId: session.userId },
+  });
   if (!row) notFound();
 
   const recording: Recording = {

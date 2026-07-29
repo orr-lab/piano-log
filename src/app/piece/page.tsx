@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { prisma } from "@/lib/prisma";
 import type { Recording } from "@/lib/types";
 import { VideoThumbnail } from "@/components/video-thumbnail";
 import { Badge } from "@/components/ui/badge";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,15 @@ export default async function PiecePage({
 }: {
   searchParams: Promise<{ title?: string; composer?: string }>;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { title, composer } = await searchParams;
   if (!title || !composer) notFound();
 
   const rows = await prisma.recording.findMany({
     where: {
+      userId: session.userId,
       title: { equals: title, mode: "insensitive" },
       composer: { equals: composer, mode: "insensitive" },
     },

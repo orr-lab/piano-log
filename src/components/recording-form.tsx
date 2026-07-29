@@ -34,9 +34,11 @@ function formatDuration(totalSeconds: number) {
 export function RecordingForm({
   mode,
   initialData,
+  userId,
 }: {
   mode: "create" | "edit";
   initialData?: Recording;
+  userId: string;
 }) {
   const router = useRouter();
 
@@ -96,7 +98,7 @@ export function RecordingForm({
     setUploading(true);
     setUploadProgress(0);
     try {
-      const result = await upload(file.name, file, {
+      const result = await upload(`${userId}/${file.name}`, file, {
         access: "public",
         handleUploadUrl: "/api/blob/upload",
         onUploadProgress: ({ percentage }) => setUploadProgress(percentage),
@@ -108,7 +110,7 @@ export function RecordingForm({
     } finally {
       setUploading(false);
     }
-  }, []);
+  }, [userId]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,

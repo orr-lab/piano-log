@@ -1,8 +1,11 @@
 import { prisma } from "@/lib/prisma";
 import type { Recording } from "@/lib/types";
 
-export async function getAllRecordings(): Promise<Recording[]> {
-  const rows = await prisma.recording.findMany({ orderBy: { recordedAt: "desc" } });
+export async function getAllRecordings(userId: string): Promise<Recording[]> {
+  const rows = await prisma.recording.findMany({
+    where: { userId },
+    orderBy: { recordedAt: "desc" },
+  });
   return rows.map((r) => ({
     ...r,
     recordedAt: r.recordedAt.toISOString(),

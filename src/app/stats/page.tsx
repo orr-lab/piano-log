@@ -1,4 +1,5 @@
 import { BarChart3 } from "lucide-react";
+import { redirect } from "next/navigation";
 import { getAllRecordings } from "@/lib/data";
 import { EmptyState } from "@/components/empty-state";
 import { TrendBarChart } from "@/components/charts/trend-bar-chart";
@@ -11,13 +12,16 @@ import {
   recordingsPerMonth,
   topByFrequency,
 } from "@/lib/stats";
-import { getSessionRole } from "@/lib/session";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 export default async function StatsPage() {
-  const [recordings, role] = await Promise.all([getAllRecordings(), getSessionRole()]);
-  const isOwner = role === "owner";
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const recordings = await getAllRecordings(session.userId);
+  const isOwner = session.role === "owner";
 
   if (recordings.length === 0) {
     return (

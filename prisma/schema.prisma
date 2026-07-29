@@ -12,6 +12,16 @@ enum VideoSource {
   YOUTUBE
 }
 
+model User {
+  id                  String      @id @default(cuid())
+  label               String
+  isAdmin             Boolean     @default(false)
+  passwordHash        String
+  visitorPasswordHash String?
+  createdAt           DateTime    @default(now())
+  recordings          Recording[]
+}
+
 model Recording {
   id          String      @id @default(cuid())
   title       String
@@ -32,6 +42,10 @@ model Recording {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
 
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@index([title, composer])
   @@index([recordedAt])
+  @@index([userId])
 }

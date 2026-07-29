@@ -1,33 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
-import { SESSION_COOKIE, createSessionCookieValue, roleForPassword } from "@/lib/auth";
+import { SESSION_COOKIE, createSessionCookieValue } from "@/lib/auth";
+import { findUserByCredential } from "@/lib/users";
 
 export async function POST(request: NextRequest) {
   const { password } = await request.json().catch(() => ({ password: "" }));
-
-  if (!process.env.SITE_PASSWORD) {
-    return NextResponse.json(
-      { error: "SITE_PASSWORD is not configured on the server." },
-      { status: 500 }
-    );
-  }
 
   if (typeof password !== "string") {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
-  const role = await roleForPassword(password);
-  if (!role) {
+  const match = await findUserByCredential(password);
+  if (!match) {
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
-  const response = NextResponse.json({ ok: true, role });
-  response.cookies.set(SESSION_COOKIE, await createSessionCookieValue(role), {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
+  const response = NextResponse.json({ ok: true, role: match.role, isAdmin: match.isAdmin });
+  response.cookies.set(
+    SESSION_COOKIE,
+    await createSessionCookieValue({ userId: match.id, role: match.role, isAdmin: match.isAdmin }),
+    {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    }
+  );
   return response;
 }
 

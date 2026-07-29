@@ -1,7 +1,8 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import type { Recording } from "@/lib/types";
 import { RecordingForm } from "@/components/recording-form";
+import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -10,8 +11,13 @@ export default async function EditRecordingPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+
   const { id } = await params;
-  const row = await prisma.recording.findUnique({ where: { id } });
+  const row = await prisma.recording.findUnique({
+    where: { id, userId: session.userId },
+  });
   if (!row) notFound();
 
   const recording: Recording = {
@@ -30,7 +36,7 @@ export default async function EditRecordingPage({
           {recording.title} · {recording.composer}
         </p>
       </div>
-      <RecordingForm mode="edit" initialData={recording} />
+      <RecordingForm mode="edit" initialData={recording} userId={session.userId} />
     </div>
   );
 }

@@ -20,3 +20,17 @@ export type RecordingInput = z.infer<typeof recordingInputSchema>;
 export const recordingUpdateSchema = recordingInputSchema.partial();
 
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+
+export const createUserSchema = z.object({
+  label: z.string().trim().min(1, "Give this account a name").max(100),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const setPasswordSchema = z.object({
+  password: z.string().min(1, "Password is required"),
+});
+
+export const changeOwnPasswordSchema = z.object({
+  currentPassword: z.string().min(1, "Current password is required"),
+  newPassword: z.string().min(1, "New password is required"),
+});

@@ -1,9 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordingInputSchema } from "@/lib/validation";
+import { getSession } from "@/lib/session";
 import type { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const params = request.nextUrl.searchParams;
   const q = params.get("q")?.trim();
   const tag = params.get("tag")?.trim();
@@ -13,7 +17,7 @@ export async function GET(request: NextRequest) {
   const sort = params.get("sort") ?? "date";
   const order = params.get("order") === "asc" ? "asc" : "desc";
 
-  const where: Prisma.RecordingWhereInput = {};
+  const where: Prisma.RecordingWhereInput = { userId: session.userId };
 
   if (q) {
     where.OR = [
@@ -38,6 +42,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  const session = await getSession();
+  if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
   const json = await request.json().catch(() => null);
   const parsed = recordingInputSchema.safeParse(json);
 
@@ -46,12 +53,22 @@ export async function POST(request: NextRequest) {
   }
 
   const data = parsed.data;
-  const recording = await prisma.recording.create({
-    data: {
-      ...data,
-      recordedAt: new Date(data.recordedAt),
-    },
-  });
-
-  return NextResponse.json(recording, { status: 201 });
+  try {
+    const recording = await prisma.recording.create({
+      data: {
+        ...data,
+        recordedAt: new Date(data.recordedAt),
+        userId: session.userId,
+      },
+    });
+    return NextResponse.json(recording, { status: 201 });
+  } catch (err) {
+    if (err instanceof Error && "code" in err && err.code === "P2003") {
+      return NextResponse.json(
+        { error: "Your account no longer exists — please log in again." },
+        { status: 401 }
+      );
+    }
+    throw err;
+  }
 }

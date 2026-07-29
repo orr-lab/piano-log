@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Piano, LogOut, Plus } from "lucide-react";
+import { Piano, LogOut, Plus, Settings } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -72,6 +72,13 @@ export function SiteHeader({ role }: { role: Role | null }) {
                 className={buttonVariants({ size: "icon", variant: "secondary", className: "sm:hidden" })}
               >
                 <Plus className="size-4" />
+              </Link>
+              <Link
+                href="/settings"
+                aria-label="Settings"
+                className={buttonVariants({ size: "icon", variant: "ghost" })}
+              >
+                <Settings className="size-4" />
               </Link>
             </>
           )}

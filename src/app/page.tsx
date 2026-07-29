@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Piano, ListMusic, Clock, Flame, Plus } from "lucide-react";
 import { getAllRecordings } from "@/lib/data";
 import { StatTile } from "@/components/stat-tile";
@@ -6,7 +7,7 @@ import { RecordingCard } from "@/components/recording-card";
 import { EmptyState } from "@/components/empty-state";
 import { TrendBarChart } from "@/components/charts/trend-bar-chart";
 import { buttonVariants } from "@/components/ui/button";
-import { getSessionRole } from "@/lib/session";
+import { getSession } from "@/lib/session";
 import {
   currentStreak,
   formatHoursMinutes,
@@ -18,8 +19,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function DashboardPage() {
-  const [recordings, role] = await Promise.all([getAllRecordings(), getSessionRole()]);
-  const isOwner = role === "owner";
+  const session = await getSession();
+  if (!session) redirect("/login");
+
+  const recordings = await getAllRecordings(session.userId);
+  const isOwner = session.role === "owner";
 
   if (recordings.length === 0) {
     return (
