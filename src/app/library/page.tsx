@@ -101,7 +101,11 @@ export default function LibraryPage() {
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Library</h1>
-        <p className="text-muted-foreground">Every take you&apos;ve logged, in one place.</p>
+        <p className="text-muted-foreground">
+          {role === "owner"
+            ? "Every take you've logged, in one place."
+            : "Every take logged here, in one place."}
+        </p>
       </div>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
