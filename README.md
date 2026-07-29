@@ -108,9 +108,12 @@ account, not scanned across every account in the system. Passwords must meet a s
 complexity rule: at least 8 characters, with an uppercase letter, a lowercase letter, a number,
 and a symbol.
 
-Login attempts are rate-limited ([src/lib/rate-limit.ts](src/lib/rate-limit.ts)) by both IP and
-username: 5 failed attempts against either blocks further attempts for 15 minutes, tracked in the
-`LoginAttempt` table. A successful login clears the count for that IP+username pair.
+Login attempts are rate-limited ([src/lib/rate-limit.ts](src/lib/rate-limit.ts)) by the
+**(IP, username) pair**: 5 failed attempts from the same IP against the same username blocks
+further attempts for 15 minutes, tracked in the `LoginAttempt` table. Tracking the pair rather
+than either alone is deliberate — usernames aren't secret, so limiting by username alone would
+let anyone lock the real owner out just by failing repeatedly from a different IP. A successful
+login clears the count for that pair.
 
 ## 5. Run it locally
 

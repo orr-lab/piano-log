@@ -13,10 +13,13 @@ export function getClientIp(request: Request): string {
 }
 
 /**
- * Blocked if EITHER this IP or this username has hit the threshold within the window — IP alone
- * would let an attacker bypass the limit by rotating IPs against one account; username alone
- * would let a botnet spread attempts across many accounts from one IP. Tracking both closes both
- * gaps.
+ * Blocked once this exact (ip, username) pair has hit the threshold within the window.
+ * Tracking the pair rather than either alone is a deliberate trade-off: an attacker still can't
+ * grind forever against one account from a single IP, but they also can't lock the real owner
+ * out of their own account by repeatedly failing from a *different* IP — usernames aren't secret,
+ * so a username-only limit would let anyone who knows it deny the real owner access on demand.
+ * The cost is that a determined attacker rotating through many IPs isn't capped in aggregate —
+ * an acceptable trade for a low-value personal app.
  */
 export async function isLoginRateLimited(
   ip: string,
@@ -24,42 +27,25 @@ export async function isLoginRateLimited(
 ): Promise<{ limited: boolean; retryAfterSeconds?: number }> {
   const windowStart = new Date(Date.now() - WINDOW_MS);
 
-  const [ipAttempts, usernameAttempts] = await Promise.all([
-    prisma.loginAttempt.findMany({
-      where: { ip, createdAt: { gte: windowStart } },
-      orderBy: { createdAt: "asc" },
-    }),
-    prisma.loginAttempt.findMany({
-      where: { username, createdAt: { gte: windowStart } },
-      orderBy: { createdAt: "asc" },
-    }),
-  ]);
+  const attempts = await prisma.loginAttempt.findMany({
+    where: { ip, username, createdAt: { gte: windowStart } },
+    orderBy: { createdAt: "asc" },
+  });
 
-  const oldestTimes: Date[] = [];
-  if (ipAttempts.length >= MAX_ATTEMPTS) oldestTimes.push(ipAttempts[0].createdAt);
-  if (usernameAttempts.length >= MAX_ATTEMPTS) oldestTimes.push(usernameAttempts[0].createdAt);
-
-  if (oldestTimes.length === 0) {
+  if (attempts.length < MAX_ATTEMPTS) {
     return { limited: false };
   }
 
-  const retryAfterMs = Math.max(
-    ...oldestTimes.map((createdAt) => WINDOW_MS - (Date.now() - createdAt.getTime()))
-  );
+  const retryAfterMs = WINDOW_MS - (Date.now() - attempts[0].createdAt.getTime());
   return { limited: true, retryAfterSeconds: Math.max(1, Math.ceil(retryAfterMs / 1000)) };
 }
 
 export async function recordFailedLoginAttempt(ip: string, username: string): Promise<void> {
   const windowStart = new Date(Date.now() - WINDOW_MS);
-  await prisma.loginAttempt.deleteMany({
-    where: { OR: [{ ip, createdAt: { lt: windowStart } }, { username, createdAt: { lt: windowStart } }] },
-  });
+  await prisma.loginAttempt.deleteMany({ where: { ip, username, createdAt: { lt: windowStart } } });
   await prisma.loginAttempt.create({ data: { ip, username } });
 }
 
 export async function clearLoginAttempts(ip: string, username: string): Promise<void> {
-  // Scoped to this exact ip+username pair, not "any row matching either" — otherwise a
-  // legitimate login could wipe out an unrelated attacker's separate failure count sharing
-  // only the username (or only the IP).
   await prisma.loginAttempt.deleteMany({ where: { ip, username } });
 }
