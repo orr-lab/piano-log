@@ -124,11 +124,14 @@ vercel deploy --prod
 Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want the admin to have visitor access)
 are set as production environment variables in the Vercel dashboard (Project Settings →
 Environment Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't push your
-local values there for you, and it's easy to end up with an unset/empty value in production
-without noticing (that's a real weak spot, since `SITE_PASSWORD` keys the session-cookie
-signature — see [src/lib/auth.ts](src/lib/auth.ts) — even after it stops gating login directly).
-Run `node scripts/seed-admin.js` once against production too (point `DATABASE_URL` at it) after
-the first deploy that includes the `User` table migration.
+local values there for you. Run `node scripts/seed-admin.js` once against production too (point
+`DATABASE_URL` at it) after the first deploy that includes the `User` table migration.
+
+**Gotcha to avoid:** don't ever let `SITE_PASSWORD` end up unset/empty in production — since it
+also keys the session-cookie signature (see [src/lib/auth.ts](src/lib/auth.ts)), an empty value
+is a real weak spot even after it stops gating login directly, and `vercel env pull` won't warn
+you if it's blank. Double-check the value is non-empty any time you touch env vars in the
+dashboard.
 
 ## Staying on the free tier
 
