@@ -1,10 +1,12 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { listUsers } from "@/lib/users";
 import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { VisitorPasswordForm } from "@/components/settings/visitor-password-form";
 import { UserManagementPanel } from "@/components/settings/user-management-panel";
+import { PublicProfileToggle } from "@/components/settings/public-profile-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -15,9 +17,14 @@ export default async function SettingsPage() {
 
   const me = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { username: true, visitorPasswordHash: true },
+    select: { username: true, visitorPasswordHash: true, publicProfileEnabled: true },
   });
   if (!me) redirect("/login");
+
+  const headersList = await headers();
+  const host = headersList.get("host") ?? "";
+  const proto = headersList.get("x-forwarded-proto") ?? "http";
+  const origin = host ? `${proto}://${host}` : "";
 
   const users = session.isAdmin
     ? (await listUsers()).map((u) => ({ ...u, createdAt: u.createdAt.toISOString() }))
@@ -45,6 +52,16 @@ export default async function SettingsPage() {
         </p>
         <VisitorPasswordForm hasVisitorPassword={me.visitorPasswordHash !== null} />
       </section>
+
+      {session.isAdmin && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">Public view</h2>
+          <p className="text-sm text-muted-foreground">
+            Let anyone browse your library read-only without signing in.
+          </p>
+          <PublicProfileToggle initialEnabled={me.publicProfileEnabled} origin={origin} />
+        </section>
+      )}
 
       {session.isAdmin && (
         <section className="space-y-4">

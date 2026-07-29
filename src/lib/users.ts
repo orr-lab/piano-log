@@ -152,3 +152,7 @@ export async function setVisitorPassword(userId: string, password: string): Prom
 export async function clearVisitorPassword(userId: string): Promise<void> {
   await prisma.user.update({ where: { id: userId }, data: { visitorPasswordHash: null } });
 }
+
+export async function setPublicProfileEnabled(userId: string, enabled: boolean): Promise<void> {
+  await prisma.user.update({ where: { id: userId }, data: { publicProfileEnabled: enabled } });
+}

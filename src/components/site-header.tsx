@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { Piano, LogOut, Plus, Settings } from "lucide-react";
+import { Piano, LogOut, LogIn, Plus, Settings } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ThemeToggle } from "@/components/theme-toggle";
@@ -19,6 +19,7 @@ export function SiteHeader({ role }: { role: Role | null }) {
   const pathname = usePathname();
   const router = useRouter();
   const isOwner = role === "owner";
+  const isPublicView = pathname.startsWith("/visitor");
 
   if (pathname === "/login") return null;
 
@@ -28,21 +29,31 @@ export function SiteHeader({ role }: { role: Role | null }) {
     router.refresh();
   }
 
+  const homeHref = isPublicView ? "/visitor" : "/";
+  const navLinks = isPublicView
+    ? NAV_LINKS.map((link) => ({ ...link, href: `/visitor${link.href === "/" ? "" : link.href}` }))
+    : NAV_LINKS;
+
   return (
     <header className="sticky top-0 z-40 border-b border-border/60 bg-background/85 backdrop-blur supports-[backdrop-filter]:bg-background/70">
       <div className="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold tracking-tight">
+        <Link href={homeHref} className="flex items-center gap-2 font-semibold tracking-tight">
           <Piano className="size-5 text-primary" />
           <span>Piano Log</span>
-          {role === "visitor" && (
+          {role === "visitor" && !isPublicView && (
             <Badge variant="secondary" className="font-normal">
               Visitor
+            </Badge>
+          )}
+          {isPublicView && (
+            <Badge variant="secondary" className="font-normal">
+              Public view
             </Badge>
           )}
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
-          {NAV_LINKS.map((link) => (
+          {navLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -83,14 +94,20 @@ export function SiteHeader({ role }: { role: Role | null }) {
             </>
           )}
           <ThemeToggle />
-          <Button variant="ghost" size="icon" aria-label="Log out" onClick={handleLogout}>
-            <LogOut className="size-4" />
-          </Button>
+          {isPublicView ? (
+            <Link href="/login" aria-label="Log in" className={buttonVariants({ variant: "ghost", size: "icon" })}>
+              <LogIn className="size-4" />
+            </Link>
+          ) : (
+            <Button variant="ghost" size="icon" aria-label="Log out" onClick={handleLogout}>
+              <LogOut className="size-4" />
+            </Button>
+          )}
         </div>
       </div>
 
       <nav className="flex items-center gap-1 overflow-x-auto border-t border-border/60 px-4 py-1.5 sm:hidden">
-        {NAV_LINKS.map((link) => (
+        {navLinks.map((link) => (
           <Link
             key={link.href}
             href={link.href}

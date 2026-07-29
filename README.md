@@ -115,6 +115,20 @@ than either alone is deliberate — usernames aren't secret, so limiting by user
 let anyone lock the real owner out just by failing repeatedly from a different IP. A successful
 login clears the count for that pair.
 
+## Public visitor profile (optional)
+
+The admin can flip a toggle in Settings ("Make my library publicly viewable") to let anyone
+browse their library read-only at `/visitor` — no login required. It's off by default, and the
+login page only shows a "View public profile" button when it's on.
+
+This is a deliberately separate code path from the rest of the app, not a "public mode" flag
+threaded through the authenticated pages — every `/visitor/*` page and `/api/public/*` route
+([src/lib/public-scope.ts](src/lib/public-scope.ts)) independently re-checks the toggle on every
+request (so turning it off immediately blocks access, even for someone with the URL already
+bookmarked), never reads the session cookie, never accepts a request body, and the API routes
+don't export anything but `GET` — there is no delete/edit/create capability anywhere on this
+surface, for any account, admin included.
+
 ## 5. Run it locally
 
 ```bash
@@ -200,12 +214,14 @@ things worth knowing:
   via Web Crypto HMAC, edge-runtime-safe for use in middleware
 - `src/lib/users.ts`/`src/lib/password-hash.ts` — account CRUD, password hashing (scrypt);
   Node-only, used from Route Handlers
-- `src/lib/rate-limit.ts` — login rate limiting by IP and username
+- `src/lib/rate-limit.ts` — login rate limiting by the (IP, username) pair
+- `src/lib/public-scope.ts` — the single toggle-check gating the whole public visitor surface
 - `scripts/seed-admin.js` — one-time rollout script, see [Accounts](#4-accounts)
 - `src/app/api/*` — recordings CRUD (scoped per account), Blob upload token endpoint,
-  login/logout, facets (distinct composers/tags for filters), `users/*` (account management)
+  login/logout, facets (distinct composers/tags for filters), `users/*` (account management),
+  `public/*` (read-only, unauthenticated, see [Public visitor profile](#public-visitor-profile-optional))
 - `src/app/*` — dashboard, `/new`, `/library`, `/piece` (progression view), `/recordings/[id]`
-  (+ `/edit`), `/stats`, `/settings` (account + user management)
+  (+ `/edit`), `/stats`, `/settings` (account + user management), `/visitor/*` (public mirror)
 - `src/lib/stats.ts` — streak, practice-time, and grouping calculations shared by the
   dashboard and stats page
 

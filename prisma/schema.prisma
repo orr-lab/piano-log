@@ -13,13 +13,14 @@ enum VideoSource {
 }
 
 model User {
-  id                  String      @id @default(cuid())
-  username            String      @unique
-  isAdmin             Boolean     @default(false)
-  passwordHash        String
-  visitorPasswordHash String?
-  createdAt           DateTime    @default(now())
-  recordings          Recording[]
+  id                    String      @id @default(cuid())
+  username              String      @unique
+  isAdmin               Boolean     @default(false)
+  passwordHash          String
+  visitorPasswordHash   String?
+  publicProfileEnabled  Boolean     @default(false)
+  createdAt             DateTime    @default(now())
+  recordings            Recording[]
 }
 
 model Recording {

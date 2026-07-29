@@ -19,10 +19,33 @@ const ADMIN_ONLY_API_PATTERNS = [
   /^\/api\/users\/(?!me\/)[^/]+\/password$/,
 ];
 
+// The public, no-login "visitor profile" — gated behind the admin's Settings toggle, checked
+// fresh on every request by getPublicAdminUserId() inside each of these pages/routes. Middleware
+// only decides these paths don't need a session; it never decides whether content is actually
+// available (it can't — Prisma needs the Node runtime, middleware runs on Edge). GET only: any
+// other method against these exact paths is rejected outright, on top of the route files simply
+// not exporting POST/PUT/DELETE handlers at all.
+const PUBLIC_PATH_PATTERNS = [
+  /^\/visitor$/,
+  /^\/visitor\/library$/,
+  /^\/visitor\/piece$/,
+  /^\/visitor\/recordings\/[^/]+$/,
+  /^\/visitor\/stats$/,
+  /^\/api\/public\/recordings$/,
+  /^\/api\/public\/facets$/,
+];
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   if (pathname === "/login" || pathname === "/api/login") {
+    return NextResponse.next();
+  }
+
+  if (PUBLIC_PATH_PATTERNS.some((pattern) => pattern.test(pathname))) {
+    if (request.method !== "GET") {
+      return NextResponse.json({ error: "Not allowed." }, { status: 405 });
+    }
     return NextResponse.next();
   }
 

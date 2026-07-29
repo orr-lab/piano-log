@@ -9,12 +9,15 @@ export function RecordingCard({
   recording,
   count = 1,
   href,
+  basePath = "",
 }: {
   recording: Recording;
   /** Number of takes this card represents. >1 renders a stacked-card look. */
   count?: number;
   /** Override the default /recordings/[id] link, e.g. to the piece progression view. */
   href?: string;
+  /** Prefix for the default recording link, e.g. "/visitor" for the public read-only mirror. */
+  basePath?: string;
 }) {
   const date = new Date(recording.recordedAt).toLocaleDateString(undefined, {
     month: "short",
@@ -32,7 +35,7 @@ export function RecordingCard({
         </>
       )}
       <Link
-        href={href ?? `/recordings/${recording.id}`}
+        href={href ?? `${basePath}/recordings/${recording.id}`}
         className="group relative block overflow-hidden rounded-xl border border-border/70 bg-card transition-shadow hover:shadow-md"
       >
         <VideoThumbnail recording={recording} />
