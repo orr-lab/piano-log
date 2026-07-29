@@ -5,6 +5,11 @@ YouTube link) after each take, tag it, rate its difficulty, jot practice notes, 
 your progress on a piece over time. Multiple accounts are supported, each with its own
 isolated library — see [Accounts](#4-accounts).
 
+**Live at [piano-log-two.vercel.app](https://piano-log-two.vercel.app)** — the admin's library is
+also viewable read-only, without signing in, at
+[piano-log-two.vercel.app/visitor](https://piano-log-two.vercel.app/visitor) (an opt-in setting,
+see [Public visitor profile](#public-visitor-profile-optional)).
+
 Built with Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, Prisma + Postgres,
 Vercel Blob for uploaded video, and Recharts for the stats page.
 
