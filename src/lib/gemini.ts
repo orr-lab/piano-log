@@ -4,11 +4,18 @@ import type { Recording } from "@/lib/types";
 
 const MODEL = "gemini-3.6-flash";
 
-const PROMPT = `You are an experienced, demanding piano teacher giving a private lesson note on a
+function buildPrompt(title: string, composer: string): string {
+  return `You are an experienced, demanding piano teacher giving a private lesson note on a
 student's practice recording. This feedback is for the student's own improvement, not a public
 review — prioritize honesty and specificity over encouragement. Do not soften real problems or
 pad the response with generic praise ("great job!", "nice work!") that isn't backed by something
 concrete you actually heard. If the take is rough, say so plainly and explain why.
+
+The student has logged this recording as: "${title}"${composer ? ` by ${composer}` : ""}. Trust
+this over your own guess if what you hear seems ambiguous (e.g. a mechanical/MIDI-precise
+accompaniment pattern that could otherwise be misheard as a different genre or style) — but if
+what you actually hear flatly contradicts this label (wrong piece entirely, or no piano audio at
+all), say so instead of forcing the label to fit.
 
 Listen to this performance and assess it, focusing only on musical qualities. Ignore visual
 details like camera framing, lighting, or appearance — you're evaluating the playing, not the
@@ -23,14 +30,27 @@ video. Cover whichever of these are relevant to what you hear:
   faster passage"), do so — vague feedback is much less useful than specific feedback.
 
 Respond with:
-- rating: a whole number from 1 to 5 (5 = polished and performance-ready, 1 = very rough take)
-  reflecting the overall execution quality of this specific take. Use the full range — don't
-  default to the middle out of politeness.
+- rating: a whole number from 1 to 5 reflecting the overall execution quality of this specific
+  take, judged against these concrete anchors — pick the one that best matches, don't hedge toward
+  the middle:
+  1 = breaks down repeatedly: stops/restarts, frequent wrong notes, barely holds the piece
+      together.
+  2 = plays through to the end, but rhythm is unstable for most of the piece, several technical
+      slips, little to no dynamic shaping.
+  3 = mostly steady tempo with only occasional slips, some real dynamic contrast, phrasing is
+      recognizable but has rough edges.
+  4 = solid technical control throughout with only minor, isolated slips; clear dynamics and
+      shaping; sounds intentional, not accidental.
+  5 = polished and performance-ready: secure technically and expressively, nothing to flag beyond
+      nitpicks.
+  Most bedroom-practice takes are NOT automatically a 2 — if the issues you hear are limited to one
+  or two specific spots rather than pervasive, that's a 3 or 4, not a 2.
 - feedback: as long as it needs to be to be genuinely useful — do not artificially shorten it.
   Structure it in two clearly separated parts: first what's actually working (be specific about
   what, not just that something was good), then what to work on next, with the most impactful
   issue first. Write it directly to the student, in a direct and honest tone — a demanding
   teacher's note, not a cheerleader's.`;
+}
 
 const RESPONSE_SCHEMA = {
   type: Type.OBJECT,
@@ -95,7 +115,7 @@ async function uploadBlobToGemini(
 }
 
 export async function generateAiFeedback(
-  recording: Pick<Recording, "videoSource" | "videoUrl" | "youtubeId">
+  recording: Pick<Recording, "videoSource" | "videoUrl" | "youtubeId" | "title" | "composer">
 ): Promise<AiFeedbackResult> {
   if (!process.env.GEMINI_API_KEY) {
     throw new Error("GEMINI_API_KEY is not configured on the server.");
@@ -149,7 +169,7 @@ export async function generateAiFeedback(
         contents: [
           {
             role: "user",
-            parts: [mediaPart, { text: PROMPT }],
+            parts: [mediaPart, { text: buildPrompt(recording.title, recording.composer) }],
           },
         ],
         config: {
