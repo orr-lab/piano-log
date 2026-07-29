@@ -4,7 +4,7 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Piano } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -45,15 +45,14 @@ function LoginForm() {
           <Piano className="size-6" />
         </div>
         <CardTitle className="text-xl">Welcome back</CardTitle>
-        <CardDescription>Enter your password to open your practice log.</CardDescription>
+        <CardDescription>Enter your password to open the practice log.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="password">Password</Label>
-            <Input
+            <PasswordInput
               id="password"
-              type="password"
               autoFocus
               value={password}
               onChange={(e) => setPassword(e.target.value)}

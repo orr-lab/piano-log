@@ -60,7 +60,9 @@ export default async function StatsPage() {
     <div className="mx-auto max-w-5xl space-y-10 px-4 py-8">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Progress</h1>
-        <p className="text-muted-foreground">The long view of your practice.</p>
+        <p className="text-muted-foreground">
+          {isOwner ? "The long view of your practice." : "The long view of practice here."}
+        </p>
       </div>
 
       <section className="space-y-3">
@@ -111,7 +113,9 @@ export default async function StatsPage() {
               <RankedBarChart data={tagBreakdown} valueLabel="takes" />
             ) : (
               <p className="py-8 text-center text-sm text-muted-foreground">
-                Add tags to your recordings to see a breakdown here.
+                {isOwner
+                  ? "Add tags to your recordings to see a breakdown here."
+                  : "No tags logged yet."}
               </p>
             )}
           </div>

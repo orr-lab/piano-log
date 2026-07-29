@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2, Trash2, KeyRound } from "lucide-react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -85,9 +86,8 @@ function ResetPasswordDialog({ userId, label }: { userId: string; label: string 
         <form onSubmit={handleSubmit} className="space-y-3">
           <div className="space-y-2">
             <Label htmlFor={`reset-${userId}`}>New password</Label>
-            <Input
+            <PasswordInput
               id={`reset-${userId}`}
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -170,9 +170,8 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
           </div>
           <div className="space-y-2">
             <Label htmlFor="newUserPassword">Password</Label>
-            <Input
+            <PasswordInput
               id="newUserPassword"
-              type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required

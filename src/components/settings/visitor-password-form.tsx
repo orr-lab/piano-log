@@ -4,7 +4,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 
 export function VisitorPasswordForm({ hasVisitorPassword }: { hasVisitorPassword: boolean }) {
@@ -58,9 +58,8 @@ export function VisitorPasswordForm({ hasVisitorPassword }: { hasVisitorPassword
         <Label htmlFor="visitorPassword">
           {hasPassword ? "New visitor password" : "Visitor password"}
         </Label>
-        <Input
+        <PasswordInput
           id="visitorPassword"
-          type="password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

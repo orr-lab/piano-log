@@ -51,8 +51,12 @@ export default async function DashboardPage() {
     <div className="mx-auto max-w-6xl space-y-10 px-4 py-8">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Welcome back</h1>
-          <p className="text-muted-foreground">Here&apos;s how your practice has been going.</p>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {isOwner ? "Welcome back" : "Practice log"}
+          </h1>
+          <p className="text-muted-foreground">
+            {isOwner ? "Here's how your practice has been going." : "Here's how practice has been going."}
+          </p>
         </div>
         {isOwner && (
           <Link href="/new" className={buttonVariants()}>
