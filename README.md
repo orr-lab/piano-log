@@ -1,8 +1,12 @@
 # Piano Log
 
-A private, single-user practice journal for piano recordings. Upload a video (or paste a
+A private, password-gated practice journal for piano recordings. Upload a video (or paste a
 YouTube link) after each take, tag it, rate its difficulty, jot practice notes, and watch
-your progress on a piece over time.
+your progress on a piece over time. Multiple accounts are supported, each with its own
+isolated library — see [Accounts](#4-accounts).
+
+**Live at [piano-log-two.vercel.app](https://piano-log-two.vercel.app)** (password-gated —
+there's nothing to see without an account).
 
 Built with Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, Prisma + Postgres,
 Vercel Blob for uploaded video, and Recharts for the stats page.
@@ -120,8 +124,11 @@ vercel deploy --prod
 Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want the admin to have visitor access)
 are set as production environment variables in the Vercel dashboard (Project Settings →
 Environment Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't push your
-local values there for you. Run `node scripts/seed-admin.js` once against production too (point
-`DATABASE_URL` at it) after the first deploy that includes the `User` table migration.
+local values there for you, and it's easy to end up with an unset/empty value in production
+without noticing (that's a real weak spot, since `SITE_PASSWORD` keys the session-cookie
+signature — see [src/lib/auth.ts](src/lib/auth.ts) — even after it stops gating login directly).
+Run `node scripts/seed-admin.js` once against production too (point `DATABASE_URL` at it) after
+the first deploy that includes the `User` table migration.
 
 ## Staying on the free tier
 
