@@ -137,3 +137,22 @@
     @apply font-sans;
   }
 }
+
+/*
+ * Browser autofill sets an input's value without firing a normal input/change event, so a
+ * React-controlled field's state can end up out of sync with what's actually in the DOM. This
+ * animation-based hook (the standard workaround for Chrome/WebKit) lets PasswordInput detect the
+ * moment autofill happens via the animationstart event and sync its state — otherwise a later
+ * re-render (e.g. clicking the show/hide toggle) reasserts the stale controlled value and wipes
+ * out the autofilled password from the field.
+ */
+@keyframes onAutoFillStart {
+  from {}
+  to {}
+}
+
+[data-slot="input"]:autofill,
+[data-slot="input"]:-webkit-autofill {
+  animation-name: onAutoFillStart;
+  animation-duration: 1ms;
+}
