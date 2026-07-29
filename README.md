@@ -107,6 +107,10 @@ Login is still a single password field with no username, so every password in th
 (the admin's, and every account's login + visitor password) must be unique — creating or changing
 one to match an existing password is rejected with a clear error.
 
+Login attempts are rate-limited per IP ([src/lib/rate-limit.ts](src/lib/rate-limit.ts)): 5 failed
+attempts blocks that IP from trying again for 2 minutes, tracked in the `LoginAttempt` table. A
+successful login clears the count.
+
 ## 5. Run it locally
 
 ```bash
@@ -182,7 +186,7 @@ things worth knowing:
 
 ## Project structure
 
-- `prisma/schema.prisma` — the `Recording` and `User` models
+- `prisma/schema.prisma` — the `Recording`, `User`, and `LoginAttempt` models
 - `src/middleware.ts` — session check on every route: unauthenticated → redirect/401,
   visitor role → blocked from mutations and owner-only pages, non-admin → blocked from
   `/api/users*` (Next.js has deprecated the `middleware.ts` convention in favor of
@@ -198,3 +202,7 @@ things worth knowing:
   (+ `/edit`), `/stats`, `/settings` (account + user management)
 - `src/lib/stats.ts` — streak, practice-time, and grouping calculations shared by the
   dashboard and stats page
+
+## License
+
+[MIT](LICENSE)

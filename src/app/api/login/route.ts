@@ -1,18 +1,42 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, createSessionCookieValue } from "@/lib/auth";
 import { findUserByCredential } from "@/lib/users";
+import {
+  clearLoginAttempts,
+  getClientIp,
+  isLoginRateLimited,
+  recordFailedLoginAttempt,
+} from "@/lib/rate-limit";
 
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+
+  const { limited, retryAfterSeconds } = await isLoginRateLimited(ip);
+  if (limited) {
+    return NextResponse.json(
+      {
+        error: `Too many attempts. Try again in ${retryAfterSeconds} second${
+          retryAfterSeconds === 1 ? "" : "s"
+        }.`,
+      },
+      { status: 429 }
+    );
+  }
+
   const { password } = await request.json().catch(() => ({ password: "" }));
 
   if (typeof password !== "string") {
+    await recordFailedLoginAttempt(ip);
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
 
   const match = await findUserByCredential(password);
   if (!match) {
+    await recordFailedLoginAttempt(ip);
     return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
   }
+
+  await clearLoginAttempts(ip);
 
   const response = NextResponse.json({ ok: true, role: match.role, isAdmin: match.isAdmin });
   response.cookies.set(

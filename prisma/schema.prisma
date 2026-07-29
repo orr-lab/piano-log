@@ -49,3 +49,11 @@ model Recording {
   @@index([recordedAt])
   @@index([userId])
 }
+
+model LoginAttempt {
+  id        String   @id @default(cuid())
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([ip, createdAt])
+}
