@@ -21,16 +21,42 @@ export const recordingUpdateSchema = recordingInputSchema.partial();
 
 export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
 
+// Standard complexity rule: at least 8 characters, with at least one of each character class.
+export const passwordSchema = z
+  .string()
+  .min(8, "Password must be at least 8 characters long")
+  .regex(/[a-z]/, "Password must include a lowercase letter")
+  .regex(/[A-Z]/, "Password must include an uppercase letter")
+  .regex(/[0-9]/, "Password must include a number")
+  .regex(/[^A-Za-z0-9]/, "Password must include a symbol (e.g. ! @ # $ %)");
+
+export const usernameSchema = z
+  .string()
+  .trim()
+  .min(2, "Username must be at least 2 characters")
+  .max(32, "Username must be 32 characters or fewer")
+  .regex(/^[a-zA-Z0-9_.-]+$/, "Username can only contain letters, numbers, and _ . -");
+
+/** First failing rule's message, for surfacing a single clear string to the client. */
+export function firstZodError(error: z.ZodError): string {
+  return error.issues[0]?.message ?? "Invalid input.";
+}
+
 export const createUserSchema = z.object({
-  label: z.string().trim().min(1, "Give this account a name").max(100),
-  password: z.string().min(1, "Password is required"),
+  username: usernameSchema,
+  password: passwordSchema,
 });
 
 export const setPasswordSchema = z.object({
-  password: z.string().min(1, "Password is required"),
+  password: passwordSchema,
 });
 
 export const changeOwnPasswordSchema = z.object({
   currentPassword: z.string().min(1, "Current password is required"),
-  newPassword: z.string().min(1, "New password is required"),
+  newPassword: passwordSchema,
+});
+
+export const loginSchema = z.object({
+  username: z.string().trim().min(1, "Username is required"),
+  password: z.string().min(1, "Password is required"),
 });

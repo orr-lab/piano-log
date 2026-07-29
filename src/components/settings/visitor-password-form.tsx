@@ -64,6 +64,9 @@ export function VisitorPasswordForm({ hasVisitorPassword }: { hasVisitorPassword
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        <p className="text-xs text-muted-foreground">
+          At least 8 characters, with uppercase, lowercase, a number, and a symbol.
+        </p>
       </div>
       <div className="flex items-center gap-2">
         <Button type="submit" disabled={submitting}>

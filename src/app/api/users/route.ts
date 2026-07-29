@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { createUserSchema } from "@/lib/validation";
-import { createUser, listUsers, PasswordInUseError } from "@/lib/users";
+import { createUserSchema, firstZodError } from "@/lib/validation";
+import { createUser, listUsers, PasswordInUseError, UsernameInUseError } from "@/lib/users";
 
 function requireAdmin(session: Awaited<ReturnType<typeof getSession>>) {
   return session?.isAdmin && session.role === "owner";
@@ -26,14 +26,14 @@ export async function POST(request: NextRequest) {
   const json = await request.json().catch(() => null);
   const parsed = createUserSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: firstZodError(parsed.error) }, { status: 400 });
   }
 
   try {
     const user = await createUser(parsed.data);
     return NextResponse.json(user, { status: 201 });
   } catch (err) {
-    if (err instanceof PasswordInUseError) {
+    if (err instanceof PasswordInUseError || err instanceof UsernameInUseError) {
       return NextResponse.json({ error: err.message }, { status: 409 });
     }
     throw err;

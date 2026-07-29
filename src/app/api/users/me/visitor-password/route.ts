@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
-import { setPasswordSchema } from "@/lib/validation";
+import { setPasswordSchema, firstZodError } from "@/lib/validation";
 import { setVisitorPassword, clearVisitorPassword, PasswordInUseError } from "@/lib/users";
 
 export async function PUT(request: NextRequest) {
@@ -12,7 +12,7 @@ export async function PUT(request: NextRequest) {
   const json = await request.json().catch(() => null);
   const parsed = setPasswordSchema.safeParse(json);
   if (!parsed.success) {
-    return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
+    return NextResponse.json({ error: firstZodError(parsed.error) }, { status: 400 });
   }
 
   try {

@@ -5,9 +5,6 @@ YouTube link) after each take, tag it, rate its difficulty, jot practice notes, 
 your progress on a piece over time. Multiple accounts are supported, each with its own
 isolated library — see [Accounts](#4-accounts).
 
-**Live at [piano-log-two.vercel.app](https://piano-log-two.vercel.app)** (password-gated —
-there's nothing to see without an account).
-
 Built with Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, Prisma + Postgres,
 Vercel Blob for uploaded video, and Recharts for the stats page.
 
@@ -92,24 +89,28 @@ Then run the one-time seed script to create the admin account from `SITE_PASSWOR
 node scripts/seed-admin.js
 ```
 
-It's idempotent — safe to re-run — and does nothing if an admin account already exists.
+It's idempotent — safe to re-run — and does nothing if an admin account already exists. The
+admin's username defaults to `admin`; set `ADMIN_USERNAME` before running the script to pick your
+own (e.g. `ADMIN_USERNAME=orr node scripts/seed-admin.js`).
 
 ## 4. Accounts
 
 Piano Log is multi-tenant: the **admin** (seeded above) can create additional accounts from the
-Settings page (the gear icon in the header), each with its own password and its own logically
-isolated library — same features, separate recordings. Every account, admin included, can change
-its own login password and set/update/remove its own personal visitor (read-only) password from
-Settings. The admin can also reset any account's password (but never sees the existing one, since
-only hashes are ever stored) — useful if someone forgets theirs.
+Settings page (the gear icon in the header), each with its own username, password, and its own
+logically isolated library — same features, separate recordings. Every account, admin included,
+can change its own login password and set/update/remove its own personal visitor (read-only)
+password from Settings. The admin can also reset any account's password (but never sees the
+existing one, since only hashes are ever stored) — useful if someone forgets theirs.
 
-Login is still a single password field with no username, so every password in the system
-(the admin's, and every account's login + visitor password) must be unique — creating or changing
-one to match an existing password is rejected with a clear error.
+Login takes a username and password, like most sites. Usernames are unique per account, but
+passwords no longer need to be — each account's password is only ever checked against that
+account, not scanned across every account in the system. Passwords must meet a standard
+complexity rule: at least 8 characters, with an uppercase letter, a lowercase letter, a number,
+and a symbol.
 
-Login attempts are rate-limited per IP ([src/lib/rate-limit.ts](src/lib/rate-limit.ts)): 5 failed
-attempts blocks that IP from trying again for 2 minutes, tracked in the `LoginAttempt` table. A
-successful login clears the count.
+Login attempts are rate-limited ([src/lib/rate-limit.ts](src/lib/rate-limit.ts)) by both IP and
+username: 5 failed attempts against either blocks further attempts for 15 minutes, tracked in the
+`LoginAttempt` table. A successful login clears the count for that IP+username pair.
 
 ## 5. Run it locally
 
@@ -117,7 +118,8 @@ successful login clears the count.
 npm run dev
 ```
 
-Visit [http://localhost:3000](http://localhost:3000) and log in with your `SITE_PASSWORD`.
+Visit [http://localhost:3000](http://localhost:3000) and log in with your admin username
+(`ADMIN_USERNAME`, or `admin` if unset) and `SITE_PASSWORD`.
 
 ## 6. Deploy to Vercel
 
@@ -193,8 +195,9 @@ things worth knowing:
   `proxy.ts`; this still works, just expect a build-time deprecation warning)
 - `src/lib/auth.ts`/`src/lib/session.ts` — signed session cookie (`{userId, role, isAdmin}`)
   via Web Crypto HMAC, edge-runtime-safe for use in middleware
-- `src/lib/users.ts`/`src/lib/password-hash.ts` — account CRUD, password hashing (scrypt),
-  and cross-account password-uniqueness checks; Node-only, used from Route Handlers
+- `src/lib/users.ts`/`src/lib/password-hash.ts` — account CRUD, password hashing (scrypt);
+  Node-only, used from Route Handlers
+- `src/lib/rate-limit.ts` — login rate limiting by IP and username
 - `scripts/seed-admin.js` — one-time rollout script, see [Accounts](#4-accounts)
 - `src/app/api/*` — recordings CRUD (scoped per account), Blob upload token endpoint,
   login/logout, facets (distinct composers/tags for filters), `users/*` (account management)

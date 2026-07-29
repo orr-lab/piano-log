@@ -56,6 +56,9 @@ export function ChangePasswordForm() {
           onChange={(e) => setNewPassword(e.target.value)}
           required
         />
+        <p className="text-xs text-muted-foreground">
+          At least 8 characters, with uppercase, lowercase, a number, and a symbol.
+        </p>
       </div>
       <Button type="submit" disabled={submitting}>
         {submitting && <Loader2 className="size-4 animate-spin" />}

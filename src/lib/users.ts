@@ -4,7 +4,13 @@ import { hashPassword, verifyPassword } from "@/lib/password-hash";
 
 export class PasswordInUseError extends Error {
   constructor() {
-    super("That password is already in use — pick a different one.");
+    super("That password is already in use on this account — pick a different one.");
+  }
+}
+
+export class UsernameInUseError extends Error {
+  constructor() {
+    super("That username is already taken.");
   }
 }
 
@@ -26,66 +32,47 @@ export class CannotDeleteAdminError extends Error {
   }
 }
 
-interface ExcludedField {
-  userId: string;
-  field: "passwordHash" | "visitorPasswordHash";
+/** A visitor password must not equal that same account's own login password, and vice versa. */
+async function conflictsWithOwnOtherField(
+  userId: string,
+  candidate: string,
+  field: "passwordHash" | "visitorPasswordHash"
+): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) return false;
+
+  const otherHash = field === "passwordHash" ? user.visitorPasswordHash : user.passwordHash;
+  if (!otherHash) return false;
+
+  return verifyPassword(candidate, otherHash);
 }
 
-async function isPasswordInUse(candidate: string, exclude: ExcludedField[] = []): Promise<boolean> {
-  const users = await prisma.user.findMany({
-    select: { id: true, passwordHash: true, visitorPasswordHash: true },
-  });
-
-  for (const user of users) {
-    const skipOwner = exclude.some((e) => e.userId === user.id && e.field === "passwordHash");
-    if (!skipOwner && (await verifyPassword(candidate, user.passwordHash))) {
-      return true;
-    }
-
-    if (user.visitorPasswordHash) {
-      const skipVisitor = exclude.some(
-        (e) => e.userId === user.id && e.field === "visitorPasswordHash"
-      );
-      if (!skipVisitor && (await verifyPassword(candidate, user.visitorPasswordHash))) {
-        return true;
-      }
-    }
-  }
-
-  return false;
-}
-
-export async function findUserByCredential(
-  candidate: string
+export async function findUserByUsernameAndPassword(
+  username: string,
+  password: string
 ): Promise<{ id: string; role: "owner" | "visitor"; isAdmin: boolean } | null> {
-  const users = await prisma.user.findMany({
-    select: { id: true, isAdmin: true, passwordHash: true, visitorPasswordHash: true },
-  });
+  const user = await prisma.user.findUnique({ where: { username } });
+  if (!user) return null;
 
-  for (const user of users) {
-    if (await verifyPassword(candidate, user.passwordHash)) {
-      return { id: user.id, role: "owner", isAdmin: user.isAdmin };
-    }
+  if (await verifyPassword(password, user.passwordHash)) {
+    return { id: user.id, role: "owner", isAdmin: user.isAdmin };
   }
 
-  for (const user of users) {
-    if (user.visitorPasswordHash && (await verifyPassword(candidate, user.visitorPasswordHash))) {
-      return { id: user.id, role: "visitor", isAdmin: user.isAdmin };
-    }
+  if (user.visitorPasswordHash && (await verifyPassword(password, user.visitorPasswordHash))) {
+    return { id: user.id, role: "visitor", isAdmin: user.isAdmin };
   }
 
   return null;
 }
 
-export async function createUser(input: { label: string; password: string }) {
-  if (await isPasswordInUse(input.password)) {
-    throw new PasswordInUseError();
-  }
+export async function createUser(input: { username: string; password: string }) {
+  const existing = await prisma.user.findUnique({ where: { username: input.username } });
+  if (existing) throw new UsernameInUseError();
 
   const passwordHash = await hashPassword(input.password);
   return prisma.user.create({
-    data: { label: input.label, isAdmin: false, passwordHash },
-    select: { id: true, label: true, createdAt: true },
+    data: { username: input.username, isAdmin: false, passwordHash },
+    select: { id: true, username: true, createdAt: true },
   });
 }
 
@@ -93,12 +80,12 @@ export async function listUsers() {
   const users = await prisma.user.findMany({
     where: { isAdmin: false },
     orderBy: { createdAt: "asc" },
-    select: { id: true, label: true, createdAt: true, visitorPasswordHash: true },
+    select: { id: true, username: true, createdAt: true, visitorPasswordHash: true },
   });
 
   return users.map((u) => ({
     id: u.id,
-    label: u.label,
+    username: u.username,
     createdAt: u.createdAt,
     hasVisitorPassword: u.visitorPasswordHash !== null,
   }));
@@ -130,7 +117,7 @@ export async function changeOwnPassword(
     throw new WrongPasswordError();
   }
 
-  if (await isPasswordInUse(newPassword, [{ userId, field: "passwordHash" }])) {
+  if (await conflictsWithOwnOtherField(userId, newPassword, "passwordHash")) {
     throw new PasswordInUseError();
   }
 
@@ -142,7 +129,7 @@ export async function resetUserPassword(targetUserId: string, newPassword: strin
   const user = await prisma.user.findUnique({ where: { id: targetUserId } });
   if (!user) throw new UserNotFoundError();
 
-  if (await isPasswordInUse(newPassword, [{ userId: targetUserId, field: "passwordHash" }])) {
+  if (await conflictsWithOwnOtherField(targetUserId, newPassword, "passwordHash")) {
     throw new PasswordInUseError();
   }
 
@@ -154,7 +141,7 @@ export async function setVisitorPassword(userId: string, password: string): Prom
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new UserNotFoundError();
 
-  if (await isPasswordInUse(password, [{ userId, field: "visitorPasswordHash" }])) {
+  if (await conflictsWithOwnOtherField(userId, password, "visitorPasswordHash")) {
     throw new PasswordInUseError();
   }
 

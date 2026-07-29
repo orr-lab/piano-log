@@ -1,6 +1,7 @@
 // One-time, idempotent rollout script for the multi-tenant users feature.
 // Creates the admin User row from SITE_PASSWORD/VISITOR_PASSWORD (hashing them the same way
 // src/lib/password-hash.ts does) and attaches any existing userId-less recordings to it.
+// Optional ADMIN_USERNAME env var sets the admin's username (defaults to "admin").
 // Run with: node scripts/seed-admin.js
 require("dotenv").config({ path: [".env.local", ".env"] });
 const { randomBytes, scrypt } = require("node:crypto");
@@ -27,15 +28,16 @@ async function main() {
   let admin = await prisma.user.findFirst({ where: { isAdmin: true } });
 
   if (!admin) {
+    const username = process.env.ADMIN_USERNAME || "admin";
     const passwordHash = await hashPassword(sitePassword);
     const visitorPasswordHash = process.env.VISITOR_PASSWORD
       ? await hashPassword(process.env.VISITOR_PASSWORD)
       : null;
 
     admin = await prisma.user.create({
-      data: { label: "Admin", isAdmin: true, passwordHash, visitorPasswordHash },
+      data: { username, isAdmin: true, passwordHash, visitorPasswordHash },
     });
-    console.log(`Created admin user ${admin.id}`);
+    console.log(`Created admin user ${admin.id} (username: ${username})`);
   } else {
     console.log(`Admin user already exists: ${admin.id} (skipping creation)`);
   }

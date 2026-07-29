@@ -30,14 +30,16 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 
+const PASSWORD_HINT = "At least 8 characters, with uppercase, lowercase, a number, and a symbol.";
+
 interface UserRow {
   id: string;
-  label: string;
+  username: string;
   createdAt: string;
   hasVisitorPassword: boolean;
 }
 
-function ResetPasswordDialog({ userId, label }: { userId: string; label: string }) {
+function ResetPasswordDialog({ userId, username }: { userId: string; username: string }) {
   const [open, setOpen] = useState(false);
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -57,7 +59,7 @@ function ResetPasswordDialog({ userId, label }: { userId: string; label: string 
           typeof data?.error === "string" ? data.error : "Couldn't reset that password."
         );
       }
-      toast.success(`${label}'s password was reset`);
+      toast.success(`${username}'s password was reset`);
       setPassword("");
       setOpen(false);
     } catch (err) {
@@ -70,14 +72,14 @@ function ResetPasswordDialog({ userId, label }: { userId: string; label: string 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger
-        aria-label={`Reset ${label}'s password`}
+        aria-label={`Reset ${username}'s password`}
         className={buttonVariants({ variant: "ghost", size: "sm" })}
       >
         <KeyRound className="size-4" />
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Reset {label}&apos;s password</DialogTitle>
+          <DialogTitle>Reset {username}&apos;s password</DialogTitle>
           <DialogDescription>
             They&apos;ll need this new password to log in — their old one stops working
             immediately. You won&apos;t be able to see it again after this.
@@ -92,6 +94,7 @@ function ResetPasswordDialog({ userId, label }: { userId: string; label: string 
               onChange={(e) => setPassword(e.target.value)}
               required
             />
+            <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
           </div>
           <DialogFooter>
             <Button type="submit" disabled={submitting}>
@@ -108,7 +111,7 @@ function ResetPasswordDialog({ userId, label }: { userId: string; label: string 
 export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] }) {
   const router = useRouter();
   const [users, setUsers] = useState(initialUsers);
-  const [label, setLabel] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [creating, setCreating] = useState(false);
 
@@ -119,7 +122,7 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
       const res = await fetch("/api/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ label, password }),
+        body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => null);
@@ -130,10 +133,15 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
       const created = await res.json();
       setUsers((prev) => [
         ...prev,
-        { id: created.id, label: created.label, createdAt: created.createdAt, hasVisitorPassword: false },
+        {
+          id: created.id,
+          username: created.username,
+          createdAt: created.createdAt,
+          hasVisitorPassword: false,
+        },
       ]);
-      toast.success(`${created.label} created`);
-      setLabel("");
+      toast.success(`${created.username} created`);
+      setUsername("");
       setPassword("");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Something went wrong.");
@@ -159,11 +167,11 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
       <form onSubmit={handleCreate} className="space-y-3 rounded-lg border p-4">
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-2">
-            <Label htmlFor="newUserLabel">Name</Label>
+            <Label htmlFor="newUserUsername">Username</Label>
             <Input
-              id="newUserLabel"
-              value={label}
-              onChange={(e) => setLabel(e.target.value)}
+              id="newUserUsername"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               placeholder="Mom"
               required
             />
@@ -178,6 +186,7 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
             />
           </div>
         </div>
+        <p className="text-xs text-muted-foreground">{PASSWORD_HINT}</p>
         <Button type="submit" disabled={creating}>
           {creating && <Loader2 className="size-4 animate-spin" />}
           Create user
@@ -190,17 +199,17 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
             <Card key={user.id}>
               <CardContent className="flex items-center justify-between gap-3 py-3">
                 <div>
-                  <p className="text-sm font-medium">{user.label}</p>
+                  <p className="text-sm font-medium">{user.username}</p>
                   <p className="text-xs text-muted-foreground">
                     Created {new Date(user.createdAt).toLocaleDateString()}
                     {user.hasVisitorPassword ? " · has a visitor password" : ""}
                   </p>
                 </div>
                 <div className="flex items-center gap-1">
-                  <ResetPasswordDialog userId={user.id} label={user.label} />
+                  <ResetPasswordDialog userId={user.id} username={user.username} />
                   <AlertDialog>
                     <AlertDialogTrigger
-                      aria-label={`Delete ${user.label}`}
+                      aria-label={`Delete ${user.username}`}
                       className={buttonVariants({
                         variant: "ghost",
                         size: "sm",
@@ -211,7 +220,7 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete {user.label}?</AlertDialogTitle>
+                        <AlertDialogTitle>Delete {user.username}?</AlertDialogTitle>
                         <AlertDialogDescription>
                           This permanently deletes their account, recordings, and uploaded
                           videos. This can&apos;t be undone.

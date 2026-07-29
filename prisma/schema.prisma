@@ -14,7 +14,7 @@ enum VideoSource {
 
 model User {
   id                  String      @id @default(cuid())
-  label               String
+  username            String      @unique
   isAdmin             Boolean     @default(false)
   passwordHash        String
   visitorPasswordHash String?
@@ -53,7 +53,9 @@ model Recording {
 model LoginAttempt {
   id        String   @id @default(cuid())
   ip        String
+  username  String
   createdAt DateTime @default(now())
 
   @@index([ip, createdAt])
+  @@index([username, createdAt])
 }

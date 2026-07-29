@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SESSION_COOKIE, createSessionCookieValue } from "@/lib/auth";
-import { findUserByCredential } from "@/lib/users";
+import { findUserByUsernameAndPassword } from "@/lib/users";
+import { loginSchema } from "@/lib/validation";
 import {
   clearLoginAttempts,
   getClientIp,
@@ -10,8 +11,11 @@ import {
 
 export async function POST(request: NextRequest) {
   const ip = getClientIp(request);
+  const json = await request.json().catch(() => null);
+  const parsed = loginSchema.safeParse(json);
+  const username = parsed.success ? parsed.data.username : "";
 
-  const { limited, retryAfterSeconds } = await isLoginRateLimited(ip);
+  const { limited, retryAfterSeconds } = await isLoginRateLimited(ip, username);
   if (limited) {
     return NextResponse.json(
       {
@@ -23,20 +27,18 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { password } = await request.json().catch(() => ({ password: "" }));
-
-  if (typeof password !== "string") {
-    await recordFailedLoginAttempt(ip);
-    return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
+  if (!parsed.success) {
+    await recordFailedLoginAttempt(ip, username);
+    return NextResponse.json({ error: "Incorrect username or password." }, { status: 401 });
   }
 
-  const match = await findUserByCredential(password);
+  const match = await findUserByUsernameAndPassword(parsed.data.username, parsed.data.password);
   if (!match) {
-    await recordFailedLoginAttempt(ip);
-    return NextResponse.json({ error: "Incorrect password." }, { status: 401 });
+    await recordFailedLoginAttempt(ip, username);
+    return NextResponse.json({ error: "Incorrect username or password." }, { status: 401 });
   }
 
-  await clearLoginAttempts(ip);
+  await clearLoginAttempts(ip, username);
 
   const response = NextResponse.json({ ok: true, role: match.role, isAdmin: match.isAdmin });
   response.cookies.set(

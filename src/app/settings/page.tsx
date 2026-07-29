@@ -15,7 +15,7 @@ export default async function SettingsPage() {
 
   const me = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { visitorPasswordHash: true },
+    select: { username: true, visitorPasswordHash: true },
   });
   if (!me) redirect("/login");
 
@@ -28,7 +28,8 @@ export default async function SettingsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
         <p className="text-muted-foreground">
-          Manage your account{session.isAdmin ? " and other users" : ""}.
+          Signed in as <span className="font-medium text-foreground">{me.username}</span>. Manage
+          your account{session.isAdmin ? " and other users" : ""}.
         </p>
       </div>
 
