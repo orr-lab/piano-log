@@ -60,6 +60,8 @@ export function VisitorPasswordForm({ hasVisitorPassword }: { hasVisitorPassword
         </Label>
         <PasswordInput
           id="visitorPassword"
+          name="visitorPassword"
+          autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required

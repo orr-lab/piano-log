@@ -56,6 +56,8 @@ export function LoginForm({ publicProfileAvailable }: { publicProfileAvailable: 
             <Label htmlFor="username">Username</Label>
             <Input
               id="username"
+              name="username"
+              autoComplete="username"
               autoFocus
               value={username}
               onChange={(e) => setUsername(e.target.value)}
@@ -66,6 +68,8 @@ export function LoginForm({ publicProfileAvailable }: { publicProfileAvailable: 
             <Label htmlFor="password">Password</Label>
             <PasswordInput
               id="password"
+              name="password"
+              autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"

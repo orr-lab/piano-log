@@ -43,6 +43,8 @@ export function ChangePasswordForm() {
         <Label htmlFor="currentPassword">Current password</Label>
         <PasswordInput
           id="currentPassword"
+          name="currentPassword"
+          autoComplete="current-password"
           value={currentPassword}
           onChange={(e) => setCurrentPassword(e.target.value)}
           required
@@ -52,6 +54,8 @@ export function ChangePasswordForm() {
         <Label htmlFor="newPassword">New password</Label>
         <PasswordInput
           id="newPassword"
+          name="newPassword"
+          autoComplete="new-password"
           value={newPassword}
           onChange={(e) => setNewPassword(e.target.value)}
           required

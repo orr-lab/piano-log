@@ -90,6 +90,8 @@ function ResetPasswordDialog({ userId, username }: { userId: string; username: s
             <Label htmlFor={`reset-${userId}`}>New password</Label>
             <PasswordInput
               id={`reset-${userId}`}
+              name="newPassword"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -170,6 +172,8 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
             <Label htmlFor="newUserUsername">Username</Label>
             <Input
               id="newUserUsername"
+              name="username"
+              autoComplete="off"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Mom"
@@ -180,6 +184,8 @@ export function UserManagementPanel({ initialUsers }: { initialUsers: UserRow[] 
             <Label htmlFor="newUserPassword">Password</Label>
             <PasswordInput
               id="newUserPassword"
+              name="newUserPassword"
+              autoComplete="new-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
