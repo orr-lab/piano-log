@@ -52,6 +52,16 @@ export function PublicLibraryClient() {
   const [sortValue, setSortValue] = useState("date:desc");
   const [sort, order] = sortValue.split(":");
 
+  // Reset the (now stale) results the moment any filter changes, so the loading skeleton shows
+  // right away instead of the old list lingering until the new fetch resolves. Done here, during
+  // render, rather than in the effect below -- see https://react.dev/learn/you-might-not-need-an-effect#adjusting-some-state-when-a-prop-changes.
+  const queryKey = [debouncedSearch, tag, composer, difficulty, favorite, sort, order].join("|");
+  const [lastQueryKey, setLastQueryKey] = useState(queryKey);
+  if (queryKey !== lastQueryKey) {
+    setLastQueryKey(queryKey);
+    setRecordings(null);
+  }
+
   useEffect(() => {
     fetch("/api/public/facets")
       .then((r) => r.json())
@@ -75,7 +85,6 @@ export function PublicLibraryClient() {
     params.set("order", order);
 
     let cancelled = false;
-    setRecordings(null);
     fetch(`/api/public/recordings?${params.toString()}`)
       .then((r) => r.json())
       .then((data) => {

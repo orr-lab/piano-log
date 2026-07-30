@@ -61,7 +61,7 @@ export function LoginForm({ publicProfileAvailable }: { publicProfileAvailable: 
               autoFocus
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Orr"
+              placeholder="Username"
             />
           </div>
           <div className="space-y-2">
@@ -72,7 +72,7 @@ export function LoginForm({ publicProfileAvailable }: { publicProfileAvailable: 
               autoComplete="current-password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
+              placeholder="Password"
             />
           </div>
           {error && <p className="text-sm text-destructive">{error}</p>}
