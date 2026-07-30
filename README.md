@@ -5,9 +5,9 @@ YouTube link) after each take, tag it, rate its difficulty, jot practice notes, 
 your progress on a piece over time. Multiple accounts are supported, each with its own
 isolated library — see [Accounts](#4-accounts).
 
-**Live at [piano.orrknaan.com](https://piano.orrknaan.com)** (also reachable at
-[pianolog.orrknaan.com](https://pianolog.orrknaan.com) — same app, either link works) — the
-admin's library is also viewable read-only, without signing in, at
+**Live at [piano.orrknaan.com](https://piano.orrknaan.com)** (`pianolog.orrknaan.com` redirects
+here too, so either address gets you to the same place) — the admin's library is also viewable
+read-only, without signing in, at
 [piano.orrknaan.com/visitor](https://piano.orrknaan.com/visitor) (an opt-in setting, see
 [Public visitor profile](#public-visitor-profile-optional)).
 
