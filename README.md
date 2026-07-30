@@ -5,10 +5,11 @@ YouTube link) after each take, tag it, rate its difficulty, jot practice notes, 
 your progress on a piece over time. Multiple accounts are supported, each with its own
 isolated library — see [Accounts](#4-accounts).
 
-**Live at [piano-log-two.vercel.app](https://piano-log-two.vercel.app)** — the admin's library is
-also viewable read-only, without signing in, at
-[piano-log-two.vercel.app/visitor](https://piano-log-two.vercel.app/visitor) (an opt-in setting,
-see [Public visitor profile](#public-visitor-profile-optional)).
+**Live at [piano.orrknaan.com](https://piano.orrknaan.com)** (also reachable at
+[pianolog.orrknaan.com](https://pianolog.orrknaan.com) — same app, either link works) — the
+admin's library is also viewable read-only, without signing in, at
+[piano.orrknaan.com/visitor](https://piano.orrknaan.com/visitor) (an opt-in setting, see
+[Public visitor profile](#public-visitor-profile-optional)).
 
 Built with Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, Prisma + Postgres,
 Vercel Blob for uploaded video, and Recharts for the stats page.
@@ -119,6 +120,26 @@ further attempts for 15 minutes, tracked in the `LoginAttempt` table. Tracking t
 than either alone is deliberate — usernames aren't secret, so limiting by username alone would
 let anyone lock the real owner out just by failing repeatedly from a different IP. A successful
 login clears the count for that pair.
+
+## Resetting a forgotten password
+
+There's no self-service "forgot password" flow in the app (no email is ever configured, so
+there's no inbox to send a reset link to). If you ever forget your own login password, use
+[scripts/reset-password.js](scripts/reset-password.js) instead:
+
+```bash
+node scripts/reset-password.js <username> <newPassword>
+```
+
+This is deliberately **not** an API route or anything reachable from the hosted website — it's a
+local script that only works if you already have `DATABASE_URL` (from `.env.local` for the local
+database, or a production `DATABASE_URL` pulled/pasted in to target the live one). That's the same
+trust boundary as everything else that touches the database directly (like
+[scripts/seed-admin.js](scripts/seed-admin.js)): nobody can trigger this from the internet, only
+someone who already holds your database credentials, so it adds no new attack surface to the
+running site. It enforces the same password complexity rule as the rest of the app and refuses to
+run against a username that doesn't exist, but it does not require knowing the current password —
+that's the whole point, it's the break-glass path for when you don't.
 
 ## Public visitor profile (optional)
 
@@ -236,6 +257,8 @@ things worth knowing:
 - `src/lib/rate-limit.ts` — login rate limiting by the (IP, username) pair
 - `src/lib/public-scope.ts` — the single toggle-check gating the whole public visitor surface
 - `scripts/seed-admin.js` — one-time rollout script, see [Accounts](#4-accounts)
+- `scripts/reset-password.js` — local-only break-glass password reset, see
+  [Resetting a forgotten password](#resetting-a-forgotten-password)
 - `src/app/api/*` — recordings CRUD (scoped per account), Blob upload token endpoint,
   login/logout, facets (distinct composers/tags for filters), `users/*` (account management),
   `public/*` (read-only, unauthenticated, see [Public visitor profile](#public-visitor-profile-optional))
