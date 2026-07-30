@@ -124,17 +124,27 @@ login clears the count for that pair.
 ## Resetting a forgotten password
 
 There's no self-service "forgot password" flow in the app (no email is ever configured, so
-there's no inbox to send a reset link to). If you ever forget your own login password, use
-[scripts/reset-password.js](scripts/reset-password.js) instead:
+there's no inbox to send a reset link to). Which path applies depends on which account is locked
+out:
 
-```bash
-node scripts/reset-password.js <username> <newPassword>
-```
+- **A non-admin account forgot its password**: the admin resets it from the Settings page's user
+  management panel — no script needed, this already exists in the app (see
+  [Accounts](#4-accounts) above). The admin never sees the old password, only sets a new one.
+- **The admin itself forgot its password**: there's nobody above the admin to reset it from the
+  UI, so use [scripts/reset-password.js](scripts/reset-password.js) instead:
 
-This is deliberately **not** an API route or anything reachable from the hosted website — it's a
-local script that only works if you already have `DATABASE_URL` (from `.env.local` for the local
-database, or a production `DATABASE_URL` pulled/pasted in to target the live one). That's the same
-trust boundary as everything else that touches the database directly (like
+  ```bash
+  node scripts/reset-password.js <username> <newPassword>
+  ```
+
+  This also works for any account, not just the admin's, but it's really meant as the admin's own
+  break-glass path — for everyone else, resetting from Settings is simpler and doesn't require
+  database access.
+
+The script is deliberately **not** an API route or anything reachable from the hosted website —
+it only works if you already have `DATABASE_URL` (from `.env.local` for the local database, or a
+production `DATABASE_URL` pulled/pasted in to target the live one). That's the same trust
+boundary as everything else that touches the database directly (like
 [scripts/seed-admin.js](scripts/seed-admin.js)): nobody can trigger this from the internet, only
 someone who already holds your database credentials, so it adds no new attack surface to the
 running site. It enforces the same password complexity rule as the rest of the app and refuses to
