@@ -44,7 +44,7 @@ see below) or create one with:
 | Variable | Where it comes from |
 |---|---|
 | `SITE_PASSWORD` | Pick your own password. This seeds the **admin** account the first time `scripts/seed-admin.js` runs (see [Accounts](#accounts) below) — after that, it no longer gates login directly (the admin changes their password from the Settings page instead), but it must stay set, since it also keys the session-cookie signature. Don't remove or rotate it later without expecting everyone to be logged out. |
-| `VISITOR_PASSWORD` | Optional. Seeds the admin's own visitor (read-only) password at the same one-time seeding step. Same caveat as above — it's a seed value, not a live credential, once seeding has run. |
+| `VISITOR_PASSWORD` | Optional. Seeds the admin's own visitor (read-only) password at the same one-time seeding step. Unlike `SITE_PASSWORD`, it has no ongoing role afterward — it's only ever read by `scripts/seed-admin.js`, which skips entirely once an admin account already exists. Once you've seeded (or if you don't need the admin to have visitor access), it's safe to leave unset or delete from your environment entirely; the live visitor password is managed from Settings from then on. |
 | `DATABASE_URL` | From your Postgres provider (Neon via Vercel Marketplace, or any Postgres). Pulled automatically by `vercel env pull` once connected. |
 | `BLOB_READ_WRITE_TOKEN` | Created automatically when you run `vercel blob create-store` (see below), or from the Blob store's settings in the Vercel dashboard. |
 | `GEMINI_API_KEY` | Optional. Powers the "AI feedback" button on a recording — Gemini watches the take and returns a 1-5 rating plus a few sentences of coaching feedback. Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Leave unset to hide/disable the feature (it fails gracefully with a clear error if a request is made without it). |
@@ -194,11 +194,13 @@ Visit [http://localhost:3000](http://localhost:3000) and log in with your admin 
 vercel deploy --prod
 ```
 
-Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want the admin to have visitor access)
-are set as production environment variables in the Vercel dashboard (Project Settings →
-Environment Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't push your
-local values there for you. Run `node scripts/seed-admin.js` once against production too (point
-`DATABASE_URL` at it) after the first deploy that includes the `User` table migration.
+Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want the admin to have visitor access
+seeded automatically) are set as production environment variables in the Vercel dashboard (Project
+Settings → Environment Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't
+push your local values there for you. Run `node scripts/seed-admin.js` once against production too
+(point `DATABASE_URL` at it) after the first deploy that includes the `User` table migration.
+Afterward, `VISITOR_PASSWORD` can be removed from Vercel's environment variables — it's a one-time
+seed value with no runtime use once the admin account exists.
 
 **Gotcha to avoid:** don't ever let `SITE_PASSWORD` end up unset/empty in production — since it
 also keys the session-cookie signature (see [src/lib/auth.ts](src/lib/auth.ts)), an empty value
