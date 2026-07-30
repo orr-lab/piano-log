@@ -19,6 +19,7 @@ model User {
   passwordHash          String
   visitorPasswordHash   String?
   publicProfileEnabled  Boolean     @default(false)
+  videoUploadsEnabled   Boolean     @default(true)
   createdAt             DateTime    @default(now())
   recordings            Recording[]
 }

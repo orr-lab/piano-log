@@ -1,8 +1,16 @@
 import { handleUpload, type HandleUploadBody } from "@vercel/blob/client";
 import { NextResponse } from "next/server";
 import { MAX_UPLOAD_BYTES } from "@/lib/validation";
+import { isVideoUploadEnabled } from "@/lib/users";
 
 export async function POST(request: Request): Promise<NextResponse> {
+  if (!(await isVideoUploadEnabled())) {
+    return NextResponse.json(
+      { error: "Direct video uploads are currently turned off. Paste a YouTube link instead." },
+      { status: 403 }
+    );
+  }
+
   const body = (await request.json()) as HandleUploadBody;
 
   try {

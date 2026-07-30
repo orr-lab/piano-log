@@ -35,10 +35,12 @@ export function RecordingForm({
   mode,
   initialData,
   userId,
+  uploadsEnabled,
 }: {
   mode: "create" | "edit";
   initialData?: Recording;
   userId: string;
+  uploadsEnabled: boolean;
 }) {
   const router = useRouter();
 
@@ -51,7 +53,9 @@ export function RecordingForm({
   const [notes, setNotes] = useState(initialData?.notes ?? "");
   const [isFavorite, setIsFavorite] = useState(initialData?.isFavorite ?? false);
 
-  const [videoSource, setVideoSource] = useState<VideoSource>(initialData?.videoSource ?? "UPLOAD");
+  const [videoSource, setVideoSource] = useState<VideoSource>(
+    initialData?.videoSource ?? (uploadsEnabled ? "UPLOAD" : "YOUTUBE")
+  );
   const [videoUrl, setVideoUrl] = useState(initialData?.videoUrl ?? "");
   const [youtubeId, setYoutubeId] = useState<string | null>(initialData?.youtubeId ?? null);
   const [youtubeInput, setYoutubeInput] = useState(
@@ -235,7 +239,15 @@ export function RecordingForm({
                 <Film className="size-4" />
                 Keeping the current video for this take.
               </div>
-              <Button type="button" variant="secondary" size="sm" onClick={() => setReplacingVideo(true)}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => {
+                  setReplacingVideo(true);
+                  if (!uploadsEnabled) setVideoSource("YOUTUBE");
+                }}
+              >
                 Replace video
               </Button>
             </CardContent>
@@ -244,24 +256,30 @@ export function RecordingForm({
 
         {replacingVideo && (
           <div className="space-y-3">
-            <Tabs
-              value={videoSource}
-              onValueChange={(v) => {
-                setVideoSource(v as VideoSource);
-                clearVideo();
-              }}
-            >
-              <TabsList>
-                <TabsTrigger value="UPLOAD">
-                  <UploadCloud className="size-4" /> Upload a file
-                </TabsTrigger>
-                <TabsTrigger value="YOUTUBE">
-                  <Link2 className="size-4" /> Paste YouTube link
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            {uploadsEnabled ? (
+              <Tabs
+                value={videoSource}
+                onValueChange={(v) => {
+                  setVideoSource(v as VideoSource);
+                  clearVideo();
+                }}
+              >
+                <TabsList>
+                  <TabsTrigger value="UPLOAD">
+                    <UploadCloud className="size-4" /> Upload a file
+                  </TabsTrigger>
+                  <TabsTrigger value="YOUTUBE">
+                    <Link2 className="size-4" /> Paste YouTube link
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            ) : (
+              <p className="text-xs text-muted-foreground">
+                Direct video uploads are currently turned off — paste a YouTube link instead.
+              </p>
+            )}
 
-            {videoSource === "UPLOAD" && (
+            {uploadsEnabled && videoSource === "UPLOAD" && (
               <div className="space-y-3">
                 {!filePreview ? (
                   <div

@@ -7,6 +7,7 @@ import { ChangePasswordForm } from "@/components/settings/change-password-form";
 import { VisitorPasswordForm } from "@/components/settings/visitor-password-form";
 import { UserManagementPanel } from "@/components/settings/user-management-panel";
 import { PublicProfileToggle } from "@/components/settings/public-profile-toggle";
+import { VideoUploadToggle } from "@/components/settings/video-upload-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,12 @@ export default async function SettingsPage() {
 
   const me = await prisma.user.findUnique({
     where: { id: session.userId },
-    select: { username: true, visitorPasswordHash: true, publicProfileEnabled: true },
+    select: {
+      username: true,
+      visitorPasswordHash: true,
+      publicProfileEnabled: true,
+      videoUploadsEnabled: true,
+    },
   });
   if (!me) redirect("/login");
 
@@ -60,6 +66,13 @@ export default async function SettingsPage() {
             Let anyone browse your library read-only without signing in.
           </p>
           <PublicProfileToggle initialEnabled={me.publicProfileEnabled} origin={origin} />
+        </section>
+      )}
+
+      {session.isAdmin && (
+        <section className="space-y-4">
+          <h2 className="text-lg font-semibold">Storage</h2>
+          <VideoUploadToggle initialEnabled={me.videoUploadsEnabled} />
         </section>
       )}
 

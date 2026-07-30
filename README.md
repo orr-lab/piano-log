@@ -134,6 +134,20 @@ bookmarked), never reads the session cookie, never accepts a request body, and t
 don't export anything but `GET` — there is no delete/edit/create capability anywhere on this
 surface, for any account, admin included.
 
+## Video uploads (admin-toggleable)
+
+By default, logging a take lets you either upload a video file directly (stored in Vercel Blob)
+or paste a YouTube link. The admin can flip a toggle in Settings ("Allow direct video uploads")
+to turn off direct uploads app-wide, leaving YouTube links as the only way to attach a video —
+useful for keeping Blob storage usage down. It applies to every account, not just the admin's.
+
+The setting is enforced server-side in two places, not just hidden in the UI: the Blob upload-token
+endpoint ([src/app/api/blob/upload/route.ts](src/app/api/blob/upload/route.ts)) and the recording
+creation endpoint ([src/app/api/recordings/route.ts](src/app/api/recordings/route.ts)) both reject
+with a 403 if a direct upload is attempted while the toggle is off, so the block holds even against
+a raw API call. Editing a recording that already has an uploaded video still works as before —
+the toggle only blocks *new* uploads.
+
 ## 5. Run it locally
 
 ```bash

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { recordingInputSchema } from "@/lib/validation";
 import { getSession } from "@/lib/session";
+import { isVideoUploadEnabled } from "@/lib/users";
 import type { Prisma } from "@prisma/client";
 
 export async function GET(request: NextRequest) {
@@ -53,6 +54,14 @@ export async function POST(request: NextRequest) {
   }
 
   const data = parsed.data;
+
+  if (data.videoSource === "UPLOAD" && !(await isVideoUploadEnabled())) {
+    return NextResponse.json(
+      { error: "Direct video uploads are currently turned off." },
+      { status: 403 }
+    );
+  }
+
   try {
     const recording = await prisma.recording.create({
       data: {

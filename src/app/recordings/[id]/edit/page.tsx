@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import type { Recording } from "@/lib/types";
 import { RecordingForm } from "@/components/recording-form";
 import { getSession } from "@/lib/session";
+import { isVideoUploadEnabled } from "@/lib/users";
 
 export const dynamic = "force-dynamic";
 
@@ -20,6 +21,8 @@ export default async function EditRecordingPage({
   });
   if (!row) notFound();
 
+  const uploadsEnabled = await isVideoUploadEnabled();
+
   const recording: Recording = {
     ...row,
     recordedAt: row.recordedAt.toISOString(),
@@ -36,7 +39,12 @@ export default async function EditRecordingPage({
           {recording.title} · {recording.composer}
         </p>
       </div>
-      <RecordingForm mode="edit" initialData={recording} userId={session.userId} />
+      <RecordingForm
+        mode="edit"
+        initialData={recording}
+        userId={session.userId}
+        uploadsEnabled={uploadsEnabled}
+      />
     </div>
   );
 }

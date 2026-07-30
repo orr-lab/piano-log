@@ -156,3 +156,16 @@ export async function clearVisitorPassword(userId: string): Promise<void> {
 export async function setPublicProfileEnabled(userId: string, enabled: boolean): Promise<void> {
   await prisma.user.update({ where: { id: userId }, data: { publicProfileEnabled: enabled } });
 }
+
+/** App-wide setting (stored on the admin's row, but affects every account's upload capability). */
+export async function isVideoUploadEnabled(): Promise<boolean> {
+  const admin = await prisma.user.findFirst({
+    where: { isAdmin: true },
+    select: { videoUploadsEnabled: true },
+  });
+  return admin?.videoUploadsEnabled ?? true;
+}
+
+export async function setVideoUploadsEnabled(userId: string, enabled: boolean): Promise<void> {
+  await prisma.user.update({ where: { id: userId }, data: { videoUploadsEnabled: enabled } });
+}

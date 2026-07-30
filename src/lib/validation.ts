@@ -64,3 +64,7 @@ export const loginSchema = z.object({
 export const setPublicProfileSchema = z.object({
   enabled: z.boolean(),
 });
+
+export const setVideoUploadsSchema = z.object({
+  enabled: z.boolean(),
+});
