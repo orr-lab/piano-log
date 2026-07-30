@@ -1,18 +1,19 @@
 # Piano Log
 
-A private, password-gated practice journal for piano recordings. Upload a video (or paste a
-YouTube link) after each take, tag it, rate its difficulty, jot practice notes, and watch
-your progress on a piece over time. Multiple accounts are supported, each with its own
-isolated library — see [Accounts](#4-accounts).
+A password-gated practice journal for piano recordings. Upload a video (or paste a YouTube link)
+after each take, tag it, rate its difficulty, jot practice notes, and watch your progress on a
+piece over time. It's multi-tenant — an admin account can create additional logins, each with its
+own fully isolated library — and includes an optional read-only public link for sharing your
+practice log without giving out a password.
 
 **Live at [piano.orrknaan.com](https://piano.orrknaan.com)** (`pianolog.orrknaan.com` redirects
 here too, so either address gets you to the same place) — the admin's library is also viewable
 read-only, without signing in, at
-[piano.orrknaan.com/visitor](https://piano.orrknaan.com/visitor) (an opt-in setting, see
+[piano.orrknaan.com/visitor](https://piano.orrknaan.com/visitor), when that's turned on (see
 [Public visitor profile](#public-visitor-profile-optional)).
 
-Built with Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, Prisma + Postgres,
-Vercel Blob for uploaded video, and Recharts for the stats page.
+Built with Next.js (App Router) + TypeScript, Tailwind + shadcn/ui, Prisma + Postgres, Vercel Blob
+for uploaded video, and Recharts for the stats page.
 
 > **A note on the stack vs. the original spec:** this was scaffolded with the latest stable
 > Next.js (16) rather than pinned to 14, since 14 no longer receives updates — `create-next-app@latest`
@@ -23,6 +24,26 @@ Vercel Blob for uploaded video, and Recharts for the stats page.
 > than the newly-released 7, which drops the classic `datasource url` schema config in
 > favor of driver adapters — a much bigger workflow change than this app needs.
 
+## Features
+
+- **Log a take**: title, composer, date, difficulty (1-5), tempo, tags, and free-text notes,
+  attached to either an uploaded video file or a YouTube link.
+- **Progress tracking**: a dashboard with streaks and practice-time totals, a library with
+  search/filter/sort, and a per-piece view showing every take of the same piece over time.
+- **AI feedback**: an optional Gemini-powered rating and coaching note per recording — see
+  [AI feedback](#ai-feedback-gemini).
+- **Multiple accounts**: the admin can create additional logins, each with its own isolated
+  library — see [Accounts](#accounts).
+- **Visitor (read-only) access**: any account can hand out a separate password that grants
+  browsing without any editing ability.
+- **Public visitor profile**: an admin-only, opt-in toggle that publishes the admin's library
+  read-only at `/visitor`, no login at all — see [Public visitor profile](#public-visitor-profile-optional).
+- **Admin controls**: create/delete accounts, reset any account's password, and two app-wide
+  toggles (public visitor profile, direct video uploads) — all from Settings.
+- **Security-conscious by design**: scrypt password hashing, signed session cookies, per-(IP,
+  username) login rate limiting, and a local-only break-glass password reset script — see
+  [Resetting a forgotten password](#resetting-a-forgotten-password).
+
 ## How the data model works
 
 There's no separate "Piece" table. A **Recording** is one take of one piece (title +
@@ -30,13 +51,15 @@ composer + date + video + tags + difficulty + notes + optional tempo). Pieces ar
 computed on the fly by grouping recordings on `title` + `composer` (case-insensitive) —
 see [src/lib/stats.ts](src/lib/stats.ts) and the `/piece` route.
 
-## Prerequisites
+## Setup
+
+### Prerequisites
 
 - Node.js 20+
 - A Vercel account (for Blob storage and Postgres) — the free/Hobby tier covers this app
 - The [Vercel CLI](https://vercel.com/docs/cli) (`npm i -g vercel`), logged in (`vercel login`)
 
-## 1. Environment variables
+### 1. Environment variables
 
 Copy `.env.local` (already created if you used `vercel link` + `vercel blob create-store`,
 see below) or create one with:
@@ -50,7 +73,7 @@ see below) or create one with:
 | `GEMINI_API_KEY` | Optional. Powers the "AI feedback" button on a recording — Gemini watches the take and returns a 1-5 rating plus a few sentences of coaching feedback. Get a free key at [aistudio.google.com/apikey](https://aistudio.google.com/apikey). Leave unset to hide/disable the feature (it fails gracefully with a clear error if a request is made without it). |
 | `YOUTUBE_COOKIES` | Optional. Lets the AI-feedback feature fetch a YouTube recording's audio itself instead of asking Gemini to (see [AI feedback](#ai-feedback-gemini) below for why, and how to get this value — it's a real login session, handle it like a credential). Leave unset to skip. |
 
-## 2. Set up Vercel Postgres (Neon) and Blob storage
+### 2. Set up Vercel Postgres (Neon) and Blob storage
 
 ```bash
 vercel link
@@ -77,7 +100,7 @@ same command to finish provisioning. Once it succeeds, pull the resulting env va
 vercel env pull .env.local
 ```
 
-## 3. Install dependencies and set up the database schema
+### 3. Install dependencies and set up the database schema
 
 ```bash
 npm install
@@ -99,7 +122,36 @@ It's idempotent — safe to re-run — and does nothing if an admin account alre
 admin's username defaults to `admin`; set `ADMIN_USERNAME` before running the script to pick your
 own (e.g. `ADMIN_USERNAME=orr node scripts/seed-admin.js`).
 
-## 4. Accounts
+### 4. Run it locally
+
+```bash
+npm run dev
+```
+
+Visit [http://localhost:3000](http://localhost:3000) and log in with your admin username
+(`ADMIN_USERNAME`, or `admin` if unset) and `SITE_PASSWORD`.
+
+### 5. Deploy to Vercel
+
+```bash
+vercel deploy --prod
+```
+
+Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want the admin to have visitor access
+seeded automatically) are set as production environment variables in the Vercel dashboard (Project
+Settings → Environment Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't
+push your local values there for you. Run `node scripts/seed-admin.js` once against production too
+(point `DATABASE_URL` at it) after the first deploy that includes the `User` table migration.
+Afterward, `VISITOR_PASSWORD` can be removed from Vercel's environment variables — it's a one-time
+seed value with no runtime use once the admin account exists.
+
+**Gotcha to avoid:** don't ever let `SITE_PASSWORD` end up unset/empty in production — since it
+also keys the session-cookie signature (see [src/lib/auth.ts](src/lib/auth.ts)), an empty value
+is a real weak spot even after it stops gating login directly, and `vercel env pull` won't warn
+you if it's blank. Double-check the value is non-empty any time you touch env vars in the
+dashboard.
+
+## Accounts
 
 Piano Log is multi-tenant: the **admin** (seeded above) can create additional accounts from the
 Settings page (the gear icon in the header), each with its own username, password, and its own
@@ -121,7 +173,7 @@ than either alone is deliberate — usernames aren't secret, so limiting by user
 let anyone lock the real owner out just by failing repeatedly from a different IP. A successful
 login clears the count for that pair.
 
-## Resetting a forgotten password
+### Resetting a forgotten password
 
 There's no self-service "forgot password" flow in the app (no email is ever configured, so
 there's no inbox to send a reset link to). Which path applies depends on which account is locked
@@ -129,7 +181,7 @@ out:
 
 - **A non-admin account forgot its password**: the admin resets it from the Settings page's user
   management panel — no script needed, this already exists in the app (see
-  [Accounts](#4-accounts) above). The admin never sees the old password, only sets a new one.
+  [Accounts](#accounts) above). The admin never sees the old password, only sets a new one.
 - **The admin itself forgot its password**: there's nobody above the admin to reset it from the
   UI, so use [scripts/reset-password.js](scripts/reset-password.js) instead:
 
@@ -151,7 +203,7 @@ running site. It enforces the same password complexity rule as the rest of the a
 run against a username that doesn't exist, but it does not require knowing the current password —
 that's the whole point, it's the break-glass path for when you don't.
 
-## Public visitor profile (optional)
+### Public visitor profile (optional)
 
 The admin can flip a toggle in Settings ("Make my library publicly viewable") to let anyone
 browse their library read-only at `/visitor` — no login required. It's off by default, and the
@@ -178,50 +230,6 @@ creation endpoint ([src/app/api/recordings/route.ts](src/app/api/recordings/rout
 with a 403 if a direct upload is attempted while the toggle is off, so the block holds even against
 a raw API call. Editing a recording that already has an uploaded video still works as before —
 the toggle only blocks *new* uploads.
-
-## 5. Run it locally
-
-```bash
-npm run dev
-```
-
-Visit [http://localhost:3000](http://localhost:3000) and log in with your admin username
-(`ADMIN_USERNAME`, or `admin` if unset) and `SITE_PASSWORD`.
-
-## 6. Deploy to Vercel
-
-```bash
-vercel deploy --prod
-```
-
-Make sure `SITE_PASSWORD` (and `VISITOR_PASSWORD`, if you want the admin to have visitor access
-seeded automatically) are set as production environment variables in the Vercel dashboard (Project
-Settings → Environment Variables) — `vercel env pull` only pulls variables *from* Vercel, it won't
-push your local values there for you. Run `node scripts/seed-admin.js` once against production too
-(point `DATABASE_URL` at it) after the first deploy that includes the `User` table migration.
-Afterward, `VISITOR_PASSWORD` can be removed from Vercel's environment variables — it's a one-time
-seed value with no runtime use once the admin account exists.
-
-**Gotcha to avoid:** don't ever let `SITE_PASSWORD` end up unset/empty in production — since it
-also keys the session-cookie signature (see [src/lib/auth.ts](src/lib/auth.ts)), an empty value
-is a real weak spot even after it stops gating login directly, and `vercel env pull` won't warn
-you if it's blank. Double-check the value is non-empty any time you touch env vars in the
-dashboard.
-
-## Staying on the free tier
-
-- **Uploads are capped at 100MB** in the UI (`MAX_UPLOAD_BYTES` in
-  [src/lib/validation.ts](src/lib/validation.ts)), with a note recommending YouTube links
-  for longer recital recordings — this keeps you well under Vercel Blob's free storage
-  allowance even with dozens of takes logged.
-  Uploads go straight from the browser to Blob storage (via `@vercel/blob/client`'s
-  `handleUpload`/token flow), bypassing Vercel's serverless function body-size limit
-  entirely, so the 100MB cap is a storage-budget choice, not a technical ceiling.
-- **Neon's free tier** has limits on storage and active compute time; a personal practice
-  log with metadata-only rows (no video bytes in the database) stays tiny for a very long
-  time.
-- Check the current Vercel Blob and Neon pricing pages before you scale this up — free-tier
-  limits change over time and aren't hard-coded into this app.
 
 ## AI feedback (Gemini)
 
@@ -255,6 +263,21 @@ things worth knowing:
   the session expires. Leave `YOUTUBE_COOKIES` unset to skip this entirely — the feature
   still works for uploaded files and for already-indexed YouTube videos either way.
 
+## Staying on the free tier
+
+- **Uploads are capped at 100MB** in the UI (`MAX_UPLOAD_BYTES` in
+  [src/lib/validation.ts](src/lib/validation.ts)), with a note recommending YouTube links
+  for longer recital recordings — this keeps you well under Vercel Blob's free storage
+  allowance even with dozens of takes logged.
+  Uploads go straight from the browser to Blob storage (via `@vercel/blob/client`'s
+  `handleUpload`/token flow), bypassing Vercel's serverless function body-size limit
+  entirely, so the 100MB cap is a storage-budget choice, not a technical ceiling.
+- **Neon's free tier** has limits on storage and active compute time; a personal practice
+  log with metadata-only rows (no video bytes in the database) stays tiny for a very long
+  time.
+- Check the current Vercel Blob and Neon pricing pages before you scale this up — free-tier
+  limits change over time and aren't hard-coded into this app.
+
 ## Project structure
 
 - `prisma/schema.prisma` — the `Recording`, `User`, and `LoginAttempt` models
@@ -268,16 +291,20 @@ things worth knowing:
   Node-only, used from Route Handlers
 - `src/lib/rate-limit.ts` — login rate limiting by the (IP, username) pair
 - `src/lib/public-scope.ts` — the single toggle-check gating the whole public visitor surface
-- `scripts/seed-admin.js` — one-time rollout script, see [Accounts](#4-accounts)
+- `src/lib/gemini.ts`/`src/lib/ytdlp.ts`/`src/lib/youtube.ts` — AI feedback: Gemini calls,
+  YouTube audio download, and YouTube URL/ID parsing
+- `src/lib/stats.ts` — streak, practice-time, and grouping calculations shared by the
+  dashboard and stats page
+- `scripts/seed-admin.js` — one-time rollout script, see [Accounts](#accounts)
 - `scripts/reset-password.js` — local-only break-glass password reset, see
   [Resetting a forgotten password](#resetting-a-forgotten-password)
 - `src/app/api/*` — recordings CRUD (scoped per account), Blob upload token endpoint,
-  login/logout, facets (distinct composers/tags for filters), `users/*` (account management),
-  `public/*` (read-only, unauthenticated, see [Public visitor profile](#public-visitor-profile-optional))
+  login/logout, facets (distinct composers/tags for filters), `users/*` (account management,
+  admin-only where noted in-handler), `public/*` (read-only, unauthenticated, see
+  [Public visitor profile](#public-visitor-profile-optional))
 - `src/app/*` — dashboard, `/new`, `/library`, `/piece` (progression view), `/recordings/[id]`
-  (+ `/edit`), `/stats`, `/settings` (account + user management), `/visitor/*` (public mirror)
-- `src/lib/stats.ts` — streak, practice-time, and grouping calculations shared by the
-  dashboard and stats page
+  (+ `/edit`), `/stats`, `/settings` (account + user management), `/visitor/*` (public mirror
+  of the same pages, scoped to the admin's library instead of a session)
 
 ## License
 
