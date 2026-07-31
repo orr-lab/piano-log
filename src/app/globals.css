@@ -7,7 +7,10 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-sans);
+  /* Deliberately pinned to what the app has actually been rendering (a browser/OS default serif
+     fallback, since this was never correctly wired to the Geist Sans font loaded in layout.tsx)
+     -- kept as-is on purpose rather than "fixed" to Geist, since this is the look in use. */
+  --font-sans: "Times New Roman", Times, serif;
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);

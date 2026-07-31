@@ -33,8 +33,12 @@ export function StreakHeatmap({ recordings }: { recordings: Recording[] }) {
 
   const now = new Date();
   const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
-  let cursor = new Date(today.getTime() - (WEEKS * 7 - 1) * MS_PER_DAY);
-  cursor = new Date(cursor.getTime() - cursor.getUTCDay() * MS_PER_DAY);
+  // Anchor the grid's *end* to the Saturday of the current week (not "today" directly) so the
+  // whole WEEKS*7-day span lands exactly on a Sunday start with no truncation -- anchoring
+  // backward from today and then re-aligning to Sunday (the previous approach) shifts the start
+  // back without extending the end, silently dropping up to 6 of the most recent days.
+  const endOfWeek = new Date(today.getTime() + (6 - today.getUTCDay()) * MS_PER_DAY);
+  let cursor = new Date(endOfWeek.getTime() - (WEEKS * 7 - 1) * MS_PER_DAY);
 
   const weeks: Date[][] = [];
   for (let w = 0; w < WEEKS; w++) {
