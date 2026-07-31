@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type KeyboardEvent } from "react";
+import { useId, useState, type KeyboardEvent } from "react";
 import { X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,12 +9,15 @@ export function TagInput({
   value,
   onChange,
   placeholder = "Add a tag and press Enter",
+  suggestions,
 }: {
   value: string[];
   onChange: (tags: string[]) => void;
   placeholder?: string;
+  suggestions?: string[];
 }) {
   const [draft, setDraft] = useState("");
+  const datalistId = useId();
 
   function commitDraft() {
     const tag = draft.trim();
@@ -55,7 +58,17 @@ export function TagInput({
         onBlur={commitDraft}
         placeholder={value.length === 0 ? placeholder : undefined}
         className="h-7 min-w-24 flex-1 border-0 px-1 shadow-none focus-visible:ring-0"
+        list={suggestions?.length ? datalistId : undefined}
       />
+      {suggestions && suggestions.length > 0 && (
+        <datalist id={datalistId}>
+          {suggestions
+            .filter((s) => !value.some((t) => t.toLowerCase() === s.toLowerCase()))
+            .map((s) => (
+              <option key={s} value={s} />
+            ))}
+        </datalist>
+      )}
     </div>
   );
 }

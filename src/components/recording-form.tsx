@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useDropzone } from "react-dropzone";
 import { upload } from "@vercel/blob/client";
@@ -71,6 +71,21 @@ export function RecordingForm({
   const [videoError, setVideoError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const hiddenVideoRef = useRef<HTMLVideoElement>(null);
+
+  const [facets, setFacets] = useState<{ titles: string[]; composers: string[]; tags: string[] }>({
+    titles: [],
+    composers: [],
+    tags: [],
+  });
+  const titleListId = useId();
+  const composerListId = useId();
+
+  useEffect(() => {
+    fetch("/api/facets")
+      .then((r) => r.json())
+      .then(setFacets)
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -357,11 +372,39 @@ export function RecordingForm({
       <section className="grid gap-4 sm:grid-cols-2">
         <div className="space-y-2">
           <Label htmlFor="title">Piece title</Label>
-          <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Clair de Lune" required />
+          <Input
+            id="title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Clair de Lune"
+            required
+            list={facets.titles.length ? titleListId : undefined}
+          />
+          {facets.titles.length > 0 && (
+            <datalist id={titleListId}>
+              {facets.titles.map((t) => (
+                <option key={t} value={t} />
+              ))}
+            </datalist>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="composer">Composer</Label>
-          <Input id="composer" value={composer} onChange={(e) => setComposer(e.target.value)} placeholder="Debussy" required />
+          <Input
+            id="composer"
+            value={composer}
+            onChange={(e) => setComposer(e.target.value)}
+            placeholder="Debussy"
+            required
+            list={facets.composers.length ? composerListId : undefined}
+          />
+          {facets.composers.length > 0 && (
+            <datalist id={composerListId}>
+              {facets.composers.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+          )}
         </div>
         <div className="space-y-2">
           <Label htmlFor="recordedAt">Date recorded</Label>
@@ -423,7 +466,12 @@ export function RecordingForm({
 
       <section className="space-y-2">
         <Label>Tags</Label>
-        <TagInput value={tags} onChange={setTags} placeholder="Chopin, sight-reading, recital piece…" />
+        <TagInput
+          value={tags}
+          onChange={setTags}
+          placeholder="Chopin, sight-reading, recital piece…"
+          suggestions={facets.tags}
+        />
       </section>
 
       <section className="space-y-2">

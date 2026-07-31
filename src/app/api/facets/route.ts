@@ -8,9 +8,12 @@ export async function GET() {
 
   const recordings = await prisma.recording.findMany({
     where: { userId: session.userId },
-    select: { composer: true, tags: true },
+    select: { title: true, composer: true, tags: true },
   });
 
+  const titles = Array.from(new Set(recordings.map((r) => r.title))).sort((a, b) =>
+    a.localeCompare(b)
+  );
   const composers = Array.from(new Set(recordings.map((r) => r.composer))).sort((a, b) =>
     a.localeCompare(b)
   );
@@ -18,5 +21,5 @@ export async function GET() {
     a.localeCompare(b)
   );
 
-  return NextResponse.json({ composers, tags });
+  return NextResponse.json({ titles, composers, tags });
 }
