@@ -56,7 +56,7 @@ export function RecordingCard({
             <span className="text-xs text-muted-foreground">
               {isStack ? `Latest ${date}` : date}
             </span>
-            <span className="text-xs text-muted-foreground">Difficulty {recording.difficulty}/5</span>
+            <span className="text-xs text-muted-foreground">Difficulty {recording.difficulty}/10</span>
           </div>
           {recording.tags.length > 0 && (
             <div className={cn("flex flex-wrap gap-1")}>

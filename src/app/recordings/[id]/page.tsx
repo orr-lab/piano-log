@@ -59,7 +59,7 @@ export default async function RecordingDetailPage({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Badge variant="outline">Difficulty {recording.difficulty}/5</Badge>
+        <Badge variant="outline">Difficulty {recording.difficulty}/10</Badge>
         {recording.tags.map((tag) => (
           <Badge key={tag} variant="secondary">
             {tag}

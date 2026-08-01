@@ -76,7 +76,7 @@ export default async function PiecePage({
                 </p>
                 <VideoThumbnail recording={r} />
                 <div className="mt-2 flex items-center justify-between text-sm">
-                  <span className="text-muted-foreground">Difficulty {r.difficulty}/5</span>
+                  <span className="text-muted-foreground">Difficulty {r.difficulty}/10</span>
                   {r.isFavorite && <span className="text-primary">★ favorite</span>}
                 </div>
               </Link>
@@ -107,7 +107,7 @@ export default async function PiecePage({
                     })}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    Difficulty {r.difficulty}/5{r.tempoBpm ? ` · ${r.tempoBpm} BPM` : ""}
+                    Difficulty {r.difficulty}/10{r.tempoBpm ? ` · ${r.tempoBpm} BPM` : ""}
                   </p>
                   {r.notes && <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{r.notes}</p>}
                 </div>

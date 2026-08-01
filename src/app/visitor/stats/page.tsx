@@ -85,7 +85,7 @@ export default async function PublicStatsPage() {
           Average self-rated difficulty of takes logged each month.
         </p>
         <div className="rounded-xl border p-4">
-          <TrendLineChart data={difficultyTrend} valueLabel="avg. difficulty" domain={[1, 5]} />
+          <TrendLineChart data={difficultyTrend} valueLabel="avg. difficulty" domain={[1, 10]} />
         </div>
       </section>
 

@@ -2,7 +2,18 @@
 
 import { cn } from "@/lib/utils";
 
-const LABELS = ["Beginner", "Easy", "Moderate", "Hard", "Virtuosic"];
+const LABELS = [
+  "Beginner",
+  "Very Easy",
+  "Easy",
+  "Easy-Moderate",
+  "Moderate",
+  "Moderate-Hard",
+  "Hard",
+  "Very Hard",
+  "Extremely Hard",
+  "Virtuosic",
+];
 
 export function DifficultyPicker({
   value,
@@ -12,9 +23,9 @@ export function DifficultyPicker({
   onChange: (value: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-2">
-      <div className="flex gap-1">
-        {[1, 2, 3, 4, 5].map((n) => (
+    <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap gap-1">
+        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((n) => (
           <button
             key={n}
             type="button"

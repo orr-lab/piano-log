@@ -162,7 +162,7 @@ export default function LibraryPage() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Any difficulty</SelectItem>
-            {[1, 2, 3, 4, 5].map((d) => (
+            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((d) => (
               <SelectItem key={d} value={String(d)}>
                 Difficulty {d}
               </SelectItem>

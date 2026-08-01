@@ -9,7 +9,7 @@ export const recordingInputSchema = z.object({
   youtubeId: z.string().trim().optional().nullable(),
   durationSec: z.number().int().positive().optional().nullable(),
   tags: z.array(z.string().trim().min(1)).default([]),
-  difficulty: z.number().int().min(1).max(5),
+  difficulty: z.number().int().min(1).max(10),
   tempoBpm: z.number().int().positive().optional().nullable(),
   notes: z.string().max(5000).optional().nullable(),
   isFavorite: z.boolean().default(false),
